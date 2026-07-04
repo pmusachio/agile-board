@@ -1,8 +1,11 @@
 # Contributing
 
-The board has no online editor in MVP1. All edits happen through git: clone, edit
-Markdown, commit, push. The live board is a read-only rendering of whatever is on
-`main`.
+Anonymous visitors get a read-only rendering of whatever is on `main`. If you log
+in with Gitea on the board itself, you can also drag cards between columns and
+edit a story's fields directly — see [RUNBOOK §10](./RUNBOOK.md#10-enable-write-access-from-the-board-login-drag-and-drop-editing).
+That still can't create a brand-new story or touch the relationship fields
+(`depends_on`/`blocks`/`related`/`epic`), so the git-based workflow below remains
+how you add a story or edit those: clone, edit Markdown, commit, push.
 
 ## Add a new story
 

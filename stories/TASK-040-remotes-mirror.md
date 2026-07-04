@@ -27,4 +27,3 @@ Configure Gitea’s push-mirror to GitHub so one push updates both remotes, or d
 
 ## Notes
 First attempt failed silently (mirror saved without the GitHub username/token actually attached — `could not read Username for 'https://github.com'`). Paulo removed and recreated it with both credential fields filled in; this story's own status update is the live test proving it now syncs automatically on push, with no manual push to GitHub needed.
-

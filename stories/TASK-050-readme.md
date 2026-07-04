@@ -27,4 +27,3 @@ Problem → solution & rationale → architecture → data model → self-host r
 
 ## Notes
 The "try it locally" section's exact commands were verified against the real repo (build-manifest + a static server + board/index.html).
-

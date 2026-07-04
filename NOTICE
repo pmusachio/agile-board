@@ -23,12 +23,22 @@ project and commit referenced above. Changes: the build:css/build:js
 placeholders (filled by upstream's build step) were replaced with direct
 <link>/<script> tags, since this fork ships the unbundled source directly
 with no build step; the header title and welcome-screen copy were translated
-to English; a script tag for board/scripts/20-remote.js was added. This file
-remains available in Source Code Form under MPL-2.0, as part of this public
-repository.
+to English; script tags for board/scripts/20-remote.js and
+board/scripts/21-write.js were added, plus a login button
+(#giteaAuthBtn) in the header for the latter. This file remains available
+in Source Code Form under MPL-2.0, as part of this public repository.
 
 board/scripts/20-remote.js
 --------------------------------------------------------------------
 Original work by Paulo Musachio, part of agile-board. Licensed under MIT
 (see ../LICENSE), same as the rest of this repository outside of the
-upstream-vendored files listed above.
+upstream-vendored files listed above. sanitizeBoardDom()/sanitizeModalDom()
+carry a small conditional guard (window.__agileBoardWriteMode) added
+alongside board/scripts/21-write.js — see that file's own header for why.
+
+board/scripts/21-write.js
+--------------------------------------------------------------------
+Original work by Paulo Musachio, part of agile-board. Licensed under MIT
+(see ../LICENSE). Adds OAuth2+PKCE login with Gitea and a real write-back
+path (drag-and-drop, the edit-task modal) via Gitea's Contents API, on top
+of the read-only mode in board/scripts/20-remote.js.

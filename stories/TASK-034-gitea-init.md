@@ -27,4 +27,3 @@ Create the Gitea admin user and the org/repo that will hold this project.
 
 ## Notes
 Skipped the web install wizard entirely: set GITEA__security__INSTALL_LOCK=true so Gitea boots straight into a ready SQLite instance, then created the admin user non-interactively via `gitea admin user create`. Repo created via the Gitea API rather than the UI. Admin credentials and a scoped push token were generated locally and saved to files on Paulo's machine — never printed in chat.
-

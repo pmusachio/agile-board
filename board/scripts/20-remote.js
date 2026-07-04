@@ -131,17 +131,31 @@
 
     // Strip write affordances that upstream's templates render unconditionally
     // (edit/drag on cards; edit/archive/delete + subtask editing in the modal).
+    // Gated on window.__agileBoardWriteMode (set by the optional 21-write.js):
+    // creating new stories (column-add-btn) and archiving/deleting a story stay
+    // out of scope even when logged in — everything else un-gates for a
+    // logged-in, write-capable session. See docs/PRD.md's MVP1.5 plan.
     function sanitizeBoardDom() {
-        document.querySelectorAll('.task-card').forEach((el) => el.removeAttribute('draggable'));
-        document.querySelectorAll('.task-list').forEach((el) => {
-            el.removeAttribute('ondrop');
-            el.removeAttribute('ondragover');
-        });
-        document.querySelectorAll('.task-edit-btn').forEach((el) => el.remove());
+        if (!window.__agileBoardWriteMode) {
+            document.querySelectorAll('.task-card').forEach((el) => el.removeAttribute('draggable'));
+            document.querySelectorAll('.task-list').forEach((el) => {
+                el.removeAttribute('ondrop');
+                el.removeAttribute('ondragover');
+            });
+            document.querySelectorAll('.task-edit-btn').forEach((el) => el.remove());
+        }
         document.querySelectorAll('.column-add-btn').forEach((el) => el.remove());
     }
 
     function sanitizeModalDom() {
+        if (window.__agileBoardWriteMode) {
+            // Archiving/deleting a whole story stays out of scope regardless of
+            // login; everything else (Edit button, subtask editing) is left as
+            // upstream rendered it.
+            document.querySelectorAll('#taskModalActions [onclick^="archiveCurrentTask"]').forEach((el) => el.remove());
+            document.querySelectorAll('#taskModalActions [onclick^="deleteCurrentTask"]').forEach((el) => el.remove());
+            return;
+        }
         const actions = document.getElementById('taskModalActions');
         if (actions) {
             const closeLabel = typeof t === 'function' ? t('taskDetail.close') : 'Close';

@@ -239,6 +239,45 @@ handle {
 Generate the hash with `docker compose exec caddy caddy hash-password`. This only
 gates the static board — Gitea's own auth is unaffected.
 
+## 10. Enable write access from the board (login, drag-and-drop, editing)
+
+`board/scripts/21-write.js` lets a logged-in user drag cards between columns
+and edit a story through the same modal upstream already ships, persisting
+through Gitea's Contents API (see [PRD](./PRD.md) for the design). Two
+one-time steps on the Gitea side, no new infrastructure:
+
+1. **Confirm self-registration is open** — visit
+   `https://<your-domain>/git/user/sign_up`; if it shows a normal registration
+   form (not redirected to login / a "registration disabled" notice),
+   anyone can already create their own Gitea account with no approval from
+   you. If it's disabled and you want it open, set
+   `GITEA__service__DISABLE_REGISTRATION=false` in `infra/docker-compose.yml`'s
+   `gitea` service and `docker compose up -d`.
+2. **Register a public (PKCE) OAuth2 application** — log into Gitea and go to
+   **Settings → Applications** (a personal application is enough; an admin
+   isn't required), then "Create a new OAuth2 Application":
+   - Name: `agile-board`.
+   - Redirect URI: `https://<your-domain>/board/` — must be the *exact*
+     string the board is served at (confirm with
+     `curl -sS -o /dev/null -w '%{url_effective}\n' -L https://<your-domain>/board`;
+     Gitea does exact-string matching, no wildcards).
+   - Leave it as a **public client** (no client secret) — PKCE covers the
+     security a confidential client would otherwise need, and there's nowhere
+     safe to keep a secret in a static SPA anyway.
+3. Copy the resulting **Client ID** (not secret — safe to commit) into
+   `board/scripts/21-write.js`'s `GITEA_CLIENT_ID` constant, and deploy that
+   change (push to `main` as usual — the publish hook picks it up like any
+   other file).
+
+Verify: open the board, click "Log in with Gitea" (self-register if you
+don't have an account), confirm the button changes to "logged in as
+@you", then drag a card to a different column. Check
+`https://<your-domain>/git/<owner>/agile-board/commits/main` — a new commit
+authored by that Gitea user should appear, and a local `git pull` should see
+it too. This should be indistinguishable from a manual git push: it's the
+same commit → `post-receive` hook → `stories/index.json` rebuild pipeline
+either way.
+
 ## Verifying the whole loop
 
 1. Open `https://<your-domain>/board/` in a browser you haven't used for this
