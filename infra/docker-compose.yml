@@ -16,6 +16,11 @@ services:
       - GITEA__server__SSH_DOMAIN=${DOMAIN}
       - GITEA__server__SSH_PORT=2222
       - GITEA__server__SSH_LISTEN_PORT=22
+      # Skip the web install wizard; boot straight into a ready SQLite instance
+      # and create the admin user via `gitea admin user create` instead (see
+      # docs/RUNBOOK.md) — no browser interaction required.
+      - GITEA__security__INSTALL_LOCK=true
+      - GITEA__database__DB_TYPE=sqlite3
     volumes:
       - ./data/gitea:/data
       # Shared with Caddy: the post-receive hook (installed per docs/RUNBOOK.md)
