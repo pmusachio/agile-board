@@ -1,7 +1,7 @@
 ---
 id: TASK-051-diagrams
 title: Diagrams
-status: in-review
+status: done
 priority: medium
 category: docs
 assignees: ["@paulo"]
@@ -18,7 +18,7 @@ related: []
 ---
 
 ## Description
-Mermaid architecture and data-flow diagrams for the README.
+
 
 ## Acceptance Criteria
 - [ ] renders on GitHub
@@ -26,4 +26,4 @@ Mermaid architecture and data-flow diagrams for the README.
 ## Subtasks
 
 ## Notes
-Drafted already in docs/PRD.md #5; reused in the README. Marked in-review until confirmed rendering on GitHub post-push.
+
