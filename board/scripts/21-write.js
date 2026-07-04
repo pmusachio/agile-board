@@ -275,11 +275,12 @@
         (items || []).forEach((it) => lines.push(`- [${it.completed ? 'x' : ' '}] ${it.text}`));
     }
 
-    // Builds the full file content for a save. `serverFrontmatter` and
-    // `serverAcceptanceCriteria` come from a FRESH GET (never from the
-    // in-memory task, which never carries the preserve-verbatim fields or the
-    // AC section at all) — this is what guarantees a lossless round-trip.
-    function serializeStory(task, serverFrontmatter, serverAcceptanceCriteria) {
+    // The frontmatter merge is shared by both the full serializer below and the
+    // body-not-loaded short-circuit in saveTask() — `serverFrontmatter` comes
+    // from a FRESH GET (never from the in-memory task, which never carries the
+    // preserve-verbatim fields at all) — this is what guarantees a lossless
+    // round-trip for the fields the edit form never touches.
+    function mergeFrontmatter(task, serverFrontmatter) {
         const merged = { ...serverFrontmatter };
         for (const key of FRONTMATTER_KEY_ORDER) {
             if (PRESERVE_VERBATIM.includes(key)) continue; // keep server's value untouched
@@ -297,6 +298,16 @@
                 default: break; // id/epic/estimate/depends_on/blocks/related already preserved above
             }
         }
+        return merged;
+    }
+
+    // Builds the full file content for a save where the task's body IS loaded
+    // (task._bodyLoaded — see the short-circuit in saveTask() for the opposite
+    // case). `serverAcceptanceCriteria` comes from a FRESH GET (never from the
+    // in-memory task, which never carries the AC section at all) — this is
+    // what guarantees a lossless round-trip.
+    function serializeStory(task, serverFrontmatter, serverAcceptanceCriteria) {
+        const merged = mergeFrontmatter(task, serverFrontmatter);
 
         // task.subtasks is the READ path's merge of AC-then-Subtasks into one
         // flat array (see loadStoryBody in 20-remote.js) — the UI has no way to
@@ -393,8 +404,22 @@
         const repoPath = `stories/${task._file}`;
         const { sha, raw } = await getFileContents(repoPath);
         const { data: serverFrontmatter, body: serverBody } = parseFrontmatter(raw);
-        const serverSections = splitSections(serverBody);
-        const newRaw = serializeStory(task, serverFrontmatter, serverSections['acceptance criteria'] || '');
+
+        let newRaw;
+        if (task._bodyLoaded) {
+            const serverSections = splitSections(serverBody);
+            newRaw = serializeStory(task, serverFrontmatter, serverSections['acceptance criteria'] || '');
+        } else {
+            // The card was never opened this session (e.g. a pure drag-and-drop
+            // status change) — storyToTask() left task.description/subtasks/
+            // notes at their unloaded-default empties, which are NOT a real
+            // edit. Writing those through serializeStory() would silently wipe
+            // the story's actual body. Only the frontmatter changed here; keep
+            // the body byte-for-byte from the fresh GET instead.
+            const merged = mergeFrontmatter(task, serverFrontmatter);
+            newRaw = `${serializeFrontmatter(merged)}\n\n${serverBody}`;
+        }
+
         const message = `${task.id}: update via board`;
         await putFileContents(repoPath, sha, newRaw, message);
     }

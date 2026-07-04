@@ -18,7 +18,7 @@ related: []
 ---
 
 ## Description
-
+Define how changes flow: commit/branch conventions, and mirroring Gitea (source of truth) to GitHub (portfolio + traceability).
 
 ## Acceptance Criteria
 - [ ] TASK-040..042 complete
@@ -26,4 +26,4 @@ related: []
 ## Subtasks
 
 ## Notes
-
+Conventions are documented (TASK-041); the actual mirror wiring (TASK-040/042) needs the Gitea instance from EPIC-003 to exist first.

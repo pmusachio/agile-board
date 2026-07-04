@@ -30,19 +30,12 @@ as web-only.
       local-run path
 
 ## Subtasks
-- [x] Full cross-file dependency mapping before deleting anything (grep every
-      function defined in the 4 files against every kept file)
-- [x] Fix the one real breakage found: 02-i18n.js's setLanguage() called
-      updateProjectSelector() (03-storage.js) unconditionally — dead call removed
-- [x] index.html: removed columnsModal (confirmed unreachable) and the local-folder
-      welcome-screen copy; kept archiveModal and several header buttons deliberately
-      inert, since unmodified vendor files reference them with no existence guard
-- [x] 20-remote.js: a manifest-load failure is now always a real error, never a
-      silent fallback to a local-folder screen that no longer exists
-- [x] Regression-tested locally: board render, card click/detail view, drag/drop,
-      edit — all still correct after removal
-- [x] README, PRD (new decision D6), NOTICE, and this story's own TASK-025
-      predecessor updated to match
+- [x] Full cross-file dependency mapping before deleting anything (grep every function defined in the 4 files against every kept file)
+- [x] Fix the one real breakage found: 02-i18n.js's setLanguage() called updateProjectSelector() (03-storage.js) unconditionally — dead call removed
+- [x] index.html: removed columnsModal (confirmed unreachable) and the local-folder welcome-screen copy; kept archiveModal and several header buttons deliberately inert, since unmodified vendor files reference them with no existence guard
+- [x] 20-remote.js: a manifest-load failure is now always a real error, never a silent fallback to a local-folder screen that no longer exists
+- [x] Regression-tested locally: board render, card click/detail view, drag/drop, edit — all still correct after removal
+- [x] README, PRD (new decision D6), NOTICE, and this story's own TASK-025 predecessor updated to match
 
 ## Notes
 The dependency mapping caught two real "would have broken in production" issues
