@@ -1,7 +1,8 @@
 agile-board — third-party notices
 ==================================
 
-board/scripts/00-theme.js .. 12-init.js
+board/scripts/00-theme.js, 01-state.js, 05-markdown.js, 06-filters.js,
+07-columns-form.js, 08-board.js, 09-task-detail.js, 12-init.js
 board/styles/*.css
 --------------------------------------------------------------------
 Vendored, UNMODIFIED, from:
@@ -16,6 +17,21 @@ available at https://mozilla.org/MPL/2.0/ and in LICENSE-MPL-2.0 in this
 directory. These files are redistributed as-is; no changes have been made to
 their contents.
 
+Four originally-vendored files from the same upstream commit —
+src/scripts/03-storage.js, 04-io.js, 10-archive.js, and 11-generate.js — were
+REMOVED entirely (not modified) once this fork went web-only: they
+implemented upstream's local-folder/File System Access editing, multi-project
+IndexedDB storage, and archive feature, none of which this deployment uses.
+Their original, unmodified content is still available in this repository's
+git history (see the commit that removed them) and, of course, upstream.
+
+board/scripts/02-i18n.js
+--------------------------------------------------------------------
+A MODIFICATION of the upstream file at the same commit referenced above.
+Change: one dead call, `updateProjectSelector();` inside `setLanguage()`, was
+removed — that function lived in the now-removed 03-storage.js. Everything
+else in this file is unmodified. Licensed under MPL-2.0, same terms as above.
+
 board/index.html
 --------------------------------------------------------------------
 A MODIFICATION (MPL-2.0 §1.9) of src/index.html from the same upstream
@@ -24,9 +40,19 @@ placeholders (filled by upstream's build step) were replaced with direct
 <link>/<script> tags, since this fork ships the unbundled source directly
 with no build step; the header title and welcome-screen copy were translated
 to English; script tags for board/scripts/20-remote.js and
-board/scripts/21-write.js were added, plus a login button
-(#giteaAuthBtn) in the header for the latter. This file remains available
-in Source Code Form under MPL-2.0, as part of this public repository.
+board/scripts/21-write.js were added, plus a login button (#giteaAuthBtn) in
+the header for the latter. Once this fork went web-only: the script tags for
+03-storage.js/04-io.js/10-archive.js/11-generate.js and the columnsModal
+markup were removed (confirmed unreachable — see the top-of-file comment in
+this file for the dependency analysis); the welcome-screen copy was rewritten
+to drop the "select a local folder" call to action. A few header buttons
+(selectFolderBtn, newTaskBtn, archiveBtn, manageColsBtn, projectSelector,
+renameProjectBtn, deleteProjectBtn) and the archiveModal are kept even though
+they're now permanently inert — removing them would make unguarded
+`document.getElementById(...)` calls in unmodified vendored files throw at
+runtime (see the top-of-file comment in board/index.html for specifics). This
+file remains available in Source Code Form under MPL-2.0, as part of this
+public repository.
 
 board/scripts/20-remote.js
 --------------------------------------------------------------------

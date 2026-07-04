@@ -26,4 +26,6 @@ Decide whether to adapt upstream’s File System Access folder-picker editing to
 ## Subtasks
 
 ## Notes
-Decision: deferred. Upstream’s original single-kanban.md local-edit mode is kept fully intact and untouched as a dormant fallback (it still works standalone if you open board/index.html with no stories/ folder present), but it was NOT adapted to the per-file story model. MVP1 editing is git-only, per PRD D4.
+Original decision: deferred. Upstream's single-kanban.md local-edit mode was kept intact as a dormant fallback, not adapted to the per-file story model — MVP1 editing was git-only, per PRD D4.
+
+**Superseded (PRD D6):** once the board was actually used day-to-day, read-only-plus-git proved too limited (see EPIC-006). Rather than adapt the dormant local-folder mode, it was removed entirely — real editing now happens through the browser itself (Gitea OAuth2 login, drag-and-drop, edit modal — TASK-060..064), and upstream's local-folder/File System Access files (03-storage.js, 04-io.js, 10-archive.js, 11-generate.js) were deleted outright. This product is web-only now; see NOTICE for exactly what was removed.

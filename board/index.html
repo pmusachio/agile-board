@@ -2,10 +2,21 @@
   agile-board viewer — adapted from ioniks/MarkdownTaskManager (MPL-2.0).
   This file is a Modification of the upstream src/index.html: build:css/build:js
   placeholders were replaced with direct <link>/<script> tags (no build step),
-  and the welcome/header copy was translated to English. scripts/00-*.js
-  through scripts/12-*.js and styles/*.css are the unmodified upstream files.
-  scripts/20-remote.js and scripts/21-write.js are new, original code (MIT).
-  See ../NOTICE.
+  the welcome/header copy was translated to English, and — since this fork is
+  web-only, with no local-folder mode — the columnsModal markup and the local
+  file/multi-project scripts (03-storage.js, 04-io.js, 10-archive.js,
+  11-generate.js) were removed. scripts/20-remote.js and scripts/21-write.js
+  are new, original code (MIT). See ../NOTICE.
+
+  A handful of header buttons (selectFolderBtn, newTaskBtn, archiveBtn,
+  manageColsBtn, projectSelector, renameProjectBtn, deleteProjectBtn) and the
+  archiveModal are kept even though they're permanently inert/hidden: several
+  kept upstream files (02-i18n.js's updateStaticTexts(), 09-task-detail.js's
+  showTaskDetail()) reference these element ids unconditionally, with no
+  existence check, so removing the elements would throw at runtime. Leaving
+  them in the DOM (never shown, never wired to anything reachable) is the
+  smallest safe fix — see NOTICE for the one guarded exception this required
+  in 02-i18n.js itself.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -102,24 +113,8 @@
     <div class="container">
         <div id="welcomeScreen" class="welcome">
             <h2>Loading the board... 👋</h2>
-            <p>If nothing appears, this page can also be used as a local, offline task
-               manager: select a folder containing Markdown files (kanban.md and archive.md).</p>
-            <button onclick="document.getElementById('selectFolderBtn').click()" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2rem;">
-                📁 Select a local folder instead
-            </button>
-            <div style="margin-top: 2rem; padding: 1.5rem; background: white; border-radius: 8px; max-width: 600px; margin-left: auto; margin-right: auto; text-align: left;">
-                <h3 style="margin-bottom: 1rem;">💡 About local mode</h3>
-                <ol style="margin-left: 1.5rem; color: var(--text-secondary);">
-                    <li>Click "Select a local folder instead" above</li>
-                    <li>Choose a folder containing Markdown files</li>
-                    <li>The app automatically loads kanban.md</li>
-                    <li>Manage tasks visually with the Kanban board</li>
-                    <li>Changes are saved back to the Markdown files</li>
-                </ol>
-                <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
-                    ⚠️ <strong>Supported browsers</strong>: Chrome 86+, Edge 86+, Opera 72+
-                </p>
-            </div>
+            <p>If this message doesn't go away, the board data couldn't be reached —
+               check your connection and reload.</p>
         </div>
     </div>
 
@@ -140,7 +135,12 @@
         </div>
     </div>
 
-    <!-- Modal New Task (local folder mode only) -->
+    <!-- Modal New/Edit Task — despite the name, this is also the edit-task
+         modal a logged-in user gets from the task detail view's Edit button
+         (see openTaskModal() in 07-columns-form.js and 21-write.js). The
+         "new task" creation path itself is unreachable in this fork: the
+         controls that would open it (newTaskBtn, the per-column "+" button)
+         are always hidden/removed — see NOTICE. -->
     <div id="newTaskModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -230,21 +230,10 @@
         </div>
     </div>
 
-    <!-- Modal Manage Columns (local folder mode only) -->
-    <div id="columnsModal" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h2 id="columnsModalTitle">Manage columns</h2>
-                <button class="close-btn" onclick="closeColumnsModal()">&times;</button>
-            </div>
-            <div style="padding: 1.5rem;">
-                <div id="columnsList"></div>
-                <button id="addColumnBtn" onclick="addColumn()" class="btn btn-primary" style="margin-top: 1rem; width: 100%;">+ Add a column</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Archives (local folder mode only) -->
+    <!-- Modal Archives — kept only because 09-task-detail.js's
+         showTaskDetail() (used by every card click) reads #archiveModal
+         unconditionally, with no existence check; it's otherwise fully
+         inert — nothing ever makes it active. See the top-of-file note. -->
     <div id="archiveModal" class="modal">
         <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
@@ -268,15 +257,11 @@
     <script src="scripts/00-theme.js"></script>
     <script src="scripts/01-state.js"></script>
     <script src="scripts/02-i18n.js"></script>
-    <script src="scripts/03-storage.js"></script>
-    <script src="scripts/04-io.js"></script>
     <script src="scripts/05-markdown.js"></script>
     <script src="scripts/06-filters.js"></script>
     <script src="scripts/07-columns-form.js"></script>
     <script src="scripts/08-board.js"></script>
     <script src="scripts/09-task-detail.js"></script>
-    <script src="scripts/10-archive.js"></script>
-    <script src="scripts/11-generate.js"></script>
     <script src="scripts/12-init.js"></script>
     <script src="scripts/20-remote.js"></script>
     <script src="scripts/21-write.js"></script>

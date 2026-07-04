@@ -8,15 +8,15 @@
  * `config` shape the upstream renderer already understands, and calls the
  * existing renderKanban()/showTaskDetail() to display them.
  *
- * No upstream file is modified. This script only reads/writes the shared
- * globals (`tasks`, `config`) and wraps two existing function bindings
- * (`renderKanban`, `showTaskDetail`) — safe in classic (non-module) scripts,
- * where every <script> tag shares one top-level scope and a later assignment
- * to a `function`-declared name is visible to earlier-defined closures that
- * reference it by name at call time.
+ * This script only reads/writes the shared globals (`tasks`, `config`) and
+ * wraps two existing function bindings (`renderKanban`, `showTaskDetail`) —
+ * safe in classic (non-module) scripts, where every <script> tag shares one
+ * top-level scope and a later assignment to a `function`-declared name is
+ * visible to earlier-defined closures that reference it by name at call time.
  *
- * If stories/index.json is not found (404), this script does nothing further
- * and upstream's original local-folder welcome screen is left untouched.
+ * This fork is web-only — the upstream local-folder/File System Access mode
+ * has been removed entirely (see NOTICE), so a failure to load
+ * stories/index.json is always a real error, shown via showRemoteError().
  */
 (function () {
     const PRIORITY_DISPLAY = {
@@ -246,7 +246,7 @@
             return;
         }
         if (res.status === 404) {
-            // No remote board configured here — leave upstream's local-folder mode as the entry point.
+            showRemoteError('Board data not found (stories/index.json is missing).');
             return;
         }
         if (!res.ok) {

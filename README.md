@@ -28,16 +28,20 @@ an AI that should eventually reason over the team's own work.
   offline-capable, and already shaped like graph edges for later.
 - **A forked viewer, not a new one.** [`board/`](board/) is
   [ioniks/MarkdownTaskManager](https://github.com/ioniks/MarkdownTaskManager)
-  (MPL-2.0) with one addition layered on top: a read-only mode that fetches a
-  generated manifest instead of using its native local-folder editor. Every
-  vendored upstream file is byte-for-byte unmodified — see [NOTICE](NOTICE).
+  (MPL-2.0), adapted to be entirely web-based: it fetches a generated manifest
+  instead of using upstream's native local-folder editor, which this fork
+  removes outright (see [NOTICE](NOTICE) for exactly what changed).
 - **Self-hosted on free infrastructure.** [Gitea](https://about.gitea.com/) on
   an Oracle Cloud Always-Free VM is the git server *and* what serves the
   board link (via Caddy). No company cloud account required. The repo also
   mirrors to GitHub for portfolio visibility and full history.
-- **Editing is git, not a web form.** Clone → edit a Markdown file → commit →
-  push. The public link is read-only by design for MVP1 (see
-  [PRD §4](docs/PRD.md#4-solution--rationale) for the full rationale).
+- **Editing is a real git commit either way.** Anyone with the link gets a
+  read-only board. Log in with your own Gitea account (self-service, nobody
+  needs to approve you) and you can drag cards between columns and edit a
+  story directly in the browser — each change is a genuine commit, authored
+  by you, via Gitea's API, not a database write. Creating a brand-new story
+  or editing its relationship fields (`depends_on`/`blocks`/`related`/`epic`)
+  is still git-only (see [Adding or updating a story](#adding-or-updating-a-story)).
 
 ## How it works
 
@@ -62,33 +66,34 @@ flowchart LR
     M[(Mirror repo - portfolio + history)]
   end
 
-  subgraph viewer[Viewer - any browser]
-    V[board/index.html<br/>remote read-only mode]
+  subgraph viewer[Any browser]
+    V[board/index.html]
   end
 
   E3 -->|push| G
   G -->|push-mirror| M
   V -->|GET index.json + story .md| C
   C -->|serve| V
+  V -.->|logged in: drag / edit -> Contents API write, a real commit| G
 ```
 
-A push to `main` triggers a Gitea hook that checks the tree out onto the
-server and rebuilds `stories/index.json` (a lightweight manifest); Caddy
-serves that directory as static files; the viewer fetches the manifest, then
-lazy-loads a story's full Markdown only when its card is clicked. Nothing
-here needs a backend beyond "a static file server."
+A push to `main` (from git, *or* from a logged-in browser edit — both are
+real commits) triggers a Gitea hook that checks the tree out onto the server
+and rebuilds `stories/index.json` (a lightweight manifest); Caddy serves that
+directory as static files; the viewer fetches the manifest, then lazy-loads a
+story's full Markdown only when its card is clicked. Nothing here needs a
+backend beyond "a static file server" — the browser talks straight to Gitea's
+own API for writes.
 
-## Try it locally (no cloud needed)
+## Using the board
 
-```
-git clone <this-repo>
-cd agile-board
-node scripts/build-manifest.mjs   # scans stories/*.md -> stories/index.json
-python3 -m http.server 8420       # any static file server works
-```
-Open `http://localhost:8420/board/index.html` — the board renders straight
-from the `stories/` folder. Requires only Node 18+ and a static file server;
-zero `npm install`, zero build step.
+Open the [live link](https://agile-board.duckdns.org/board/) — no account
+needed to look around. Click **"Log in with Gitea"** to also drag cards
+between columns and edit a story's fields; if you don't have an account yet,
+Gitea's own sign-up page is one click away and needs no approval. There's
+nothing to install and nothing to run locally — this is a hosted, web-only
+tool by design (see [NOTICE](NOTICE) for what upstream's original local-only
+mode looked like and why it was removed).
 
 ## Data model
 
@@ -119,20 +124,25 @@ real stories under [`stories/`](stories/) — the repo's history *is* the board.
 ## Self-hosting
 
 Full walkthrough (OCI VM → firewall → DNS → Docker Compose → Gitea → publish
-hook → GitHub mirror): [docs/RUNBOOK.md](docs/RUNBOOK.md). Infra-as-code lives
-in [`infra/`](infra/) (Gitea + Caddy via Docker Compose, auto-HTTPS, the
-publish hook). Once deployed, the board is reachable at
+hook → GitHub mirror → OAuth2 app for browser login): [docs/RUNBOOK.md](docs/RUNBOOK.md).
+Infra-as-code lives in [`infra/`](infra/) (Gitea + Caddy via Docker Compose,
+auto-HTTPS, the publish hook). Once deployed, the board is reachable at
 `https://<your-domain>/board/`.
 
 ## Adding or updating a story
 
-No web form — it's a git workflow: copy [`stories/_TEMPLATE.md`](stories/_TEMPLATE.md),
+Logged-in browser editing (see [Using the board](#using-the-board)) covers
+moving a card and editing its everyday fields. Creating a brand-new story, or
+touching its relationship fields (`depends_on`/`blocks`/`related`/`epic`),
+is still a git workflow: copy [`stories/_TEMPLATE.md`](stories/_TEMPLATE.md),
 fill in the frontmatter, commit, push. Full guide:
 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 
 ## Roadmap
 
-- **MVP1 (this repo).** A usable, shareable, read-only board backed by git.
+- **MVP1 (this repo).** A usable, shareable board backed by git: read-only
+  for anyone with the link, real editing (login, drag-and-drop, edit modal)
+  for anyone with a Gitea account — self-service, no approval needed.
 - **MVP2 — Ask & relate.** Build a knowledge graph from the frontmatter edges
   (`depends_on`/`blocks`/`related`/`epic`) and `[[wiki-links]]`, plus retrieval
   over story bodies. An assistant answers "what's the team working on?" and
@@ -147,9 +157,11 @@ Full detail and current status: [docs/PRD.md](docs/PRD.md) ·
 ## License
 
 Original code (everything except the vendored viewer files) is MIT — see
-[LICENSE](LICENSE). `board/scripts/00-*.js` through `12-*.js` and
+[LICENSE](LICENSE). Most of `board/scripts/*.js` and all of
 `board/styles/*.css` are vendored unmodified from MarkdownTaskManager under
-MPL-2.0 ([LICENSE-MPL-2.0](LICENSE-MPL-2.0)). Full file-by-file breakdown:
+MPL-2.0 ([LICENSE-MPL-2.0](LICENSE-MPL-2.0)); a few files upstream shipped
+for its local-only editing mode were removed rather than carried forward,
+since this fork is web-only. Full file-by-file breakdown:
 [NOTICE](NOTICE).
 
 ## Credits

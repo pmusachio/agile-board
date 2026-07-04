@@ -1042,7 +1042,10 @@
 
             // Re-render the interface
             renderKanban();
-            updateProjectSelector();
+            // updateProjectSelector() call removed here: it lived in
+            // scripts/03-storage.js, which this fork removes entirely along
+            // with the local-folder/multi-project feature it belonged to
+            // (see ../../NOTICE) — this app is now web-only, no local mode.
             renderArchivesModal();
 
             console.log(`Language changed to: ${lang}`);

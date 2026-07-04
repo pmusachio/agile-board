@@ -5,8 +5,14 @@
 > self-hosted Gitea instance. Built to be copied: minimal moving parts, no vendor lock-in,
 > and a data model ready for AI on top.
 
-**Status:** Planning · **Owner:** Paulo Musachio · **Last updated:** 2026-07-04
+**Status:** Live (MVP1, extended — see D6) · **Owner:** Paulo Musachio · **Last updated:** 2026-07-04
 **Working title:** `agile-board` (final product name TBD)
+
+> This document was written before the build started and is kept as the
+> planning record — decisions are dated, not silently rewritten. Where the
+> shipped result diverges from the original plan (notably: write-mode, added
+> post-launch — see decision D6), that's called out explicitly rather than
+> edited away.
 
 ---
 
@@ -38,11 +44,15 @@ diffable, offline-capable, and trivially consumable by an LLM.
 - G4 — Full traceability: repository mirrored to **GitHub** with complete history and a
   **minimal-but-complete README** so a stranger can reproduce the whole project.
 - G5 — Editing works through a plain **git workflow** (clone → edit Markdown → commit →
-  push); the board reflects changes after push.
+  push); the board reflects changes after push. *(Superseded by D6: read-only-plus-git
+  proved too limited in practice once the board was actually used day-to-day — the board
+  now also supports logged-in browser editing, still landing as real git commits via
+  Gitea's API. Git remains the only way to create a new story or edit the graph-edge
+  fields.)*
 
 **Non-Goals (explicitly out of scope for MVP1)**
-- Online, multi-user, real-time editing through the link (needs a backend + conflict
-  resolution). Editing is local + git.
+- Anonymous/unauthenticated writes through the link — logged-in editing was added (D6),
+  but always attributed to a real Gitea account, never open to anyone with just the URL.
 - Any AI feature (that is MVP2 / MVP3).
 - Authentication beyond an optional basic-auth on the public board.
 - Native mobile app; rich project hierarchy beyond a simple `epic` tag; notifications;
@@ -182,9 +192,13 @@ Adaptations for MVP1:
 3. **Read-only detail view** — render description / acceptance / subtasks / notes;
    no writes in remote mode.
 4. **Robust states** — empty board, fetch error, and cross-browser support for the
-   read path (Chromium, Firefox, Safari). *Note:* the upstream local edit mode relies on
-   the File System Access API (Chromium-only); that path is optional in MVP1 and, if kept,
-   must be adapted to per-file stories — otherwise editing is git-only.
+   read path (Chromium, Firefox, Safari).
+5. **Write mode (D6, post-launch addition)** — a "Log in with Gitea" button (OAuth2 +
+   PKCE, self-service accounts, no approval needed) unlocks upstream's own drag-and-drop
+   and edit-task modal for logged-in users, persisting through Gitea's Contents API as
+   real commits. Upstream's *local-folder* edit mode (File System Access API,
+   Chromium-only) was removed outright rather than adapted — see NOTICE — since this
+   product is web-only by design.
 
 ## 8. Infrastructure & operations
 
@@ -214,13 +228,21 @@ Adaptations for MVP1:
 
 ## 10. Definition of Done (MVP1)
 
-- [ ] A person given the link opens it in a normal browser and sees the live Kanban board
-      with real cards, read-only, no login.
-- [ ] Stories exist as one Markdown file each, valid against the frontmatter schema.
-- [ ] An editor can clone, add/edit a story, push, and see the board reflect it.
-- [ ] Repo is on GitHub with full history and a minimal, complete README that lets a
+- [x] A person given the link opens it in a normal browser and sees the live Kanban board
+      with real cards, read-only, no login. **Verified** at https://agile-board.duckdns.org/board/.
+- [x] Stories exist as one Markdown file each, valid against the frontmatter schema.
+      **Verified** — 39/39 pass `scripts/validate-stories.mjs`.
+- [x] An editor can clone, add/edit a story, push, and see the board reflect it.
+      **Verified** across multiple real pushes during development.
+- [x] Repo is on GitHub with full history and a minimal, complete README that lets a
       stranger reproduce everything (infra runbook + how to add a story).
 - [ ] The OCI + Gitea + Caddy setup is reproducible from the documented runbook.
+      Runbook reflects exactly what worked (updated in place as real gotchas were hit
+      live), but hasn't been independently re-run by someone else from a blank slate.
+- [x] *(D6, added)* A logged-in user (including a freshly self-registered account) can
+      drag a card and edit a story, landing as a real commit; anonymous read-only
+      behavior is unaffected. **Verified** live, including the self-registration path
+      end-to-end via the OAuth2 token exchange.
 
 ## 11. Roadmap (post-MVP1)
 
@@ -238,11 +260,12 @@ Adaptations for MVP1:
 
 | Risk | Mitigation |
 | --- | --- |
-| File System Access API is Chromium-only | Read-only viewer works everywhere; editing is git-based. Local edit mode is optional. |
+| OAuth2 token scope isn't per-repo in Gitea | A logged-in token can write anywhere the account can, not just this repo — acceptable for a small team on a dedicated instance; documented as a known limitation, not silently assumed. |
+| Contents-API 409 conflicts (two writers, same story) | No auto-merge, no silent overwrite — surfaced as a clear "reload and retry" error. |
 | MPL-2.0 obligations on the fork | Keep adapted upstream file(s) under MPL-2.0 with preserved notices + a `NOTICE`; new original code under MIT; repo is public so source-availability is satisfied. |
 | OCI Always Free ARM capacity shortages | Retry across ADs/regions; fallbacks: OCI x86 micro, Fly.io free, low-cost Hetzner. |
 | OCI firewall/iptables port trap | Explicit runbook step for security list + OS firewall. |
-| Per-file data model = more viewer work than "small changes" | Keep viewer parsing minimal (frontmatter only); reuse upstream rendering/DnD as-is; remote mode is render-only. |
+| Per-file data model = more viewer work than "small changes" | Keep viewer parsing minimal (frontmatter only); reuse upstream rendering/DnD as-is. Write mode (D6) later added a matching serializer, verified via a round-trip test against every real story before ever touching the live board. |
 | Free domain / Let's Encrypt rate limits | DuckDNS + Caddy; cache certs on a persistent volume. |
 | Leaking secrets (Gitea admin, mirror token) | Never commit; `.gitignore` + documented env setup. |
 
@@ -255,6 +278,12 @@ Adaptations for MVP1:
 | D3 | Story storage model | **One Markdown file per story** (frontmatter + `[[wiki-links]]`) | 2026-07-04 |
 | D4 | MVP1 editing scope | **Read-only shared link + local editing via git** | 2026-07-04 |
 | D5 | Viewer base | **Fork MarkdownTaskManager** (MPL-2.0) | 2026-07-04 |
+| D6 | MVP1 editing scope, revisited | **Add logged-in browser editing** (Gitea OAuth2 + PKCE, drag-and-drop, edit modal, writes via Contents API as real commits) alongside git; **remove** upstream's local File System Access edit mode entirely rather than keep it dormant | 2026-07-04 |
 
-**Still open:** final product name; MVP2 model (Gemini vs Claude); whether to retain the
-local File System Access edit mode in the viewer or go git-only for editing.
+**Why D6:** after using the live MVP1 board for real, read-only-plus-git proved too
+limited day-to-day — no drag-and-drop, no way to add information to a card without a
+local checkout, and "git-only" was itself a barrier for exactly the non-technical
+teammates this project set out to include. Self-service Gitea accounts (no approval
+needed) resolved the access concern without needing Google or any new infrastructure.
+
+**Still open:** final product name; MVP2 model (Gemini vs Claude).
