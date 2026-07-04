@@ -1,15 +1,15 @@
 ---
 id: TASK-031-networking
 title: Networking
-status: todo
+status: done
 priority: high
 category: infra
 assignees: ["@paulo"]
 epic: EPIC-003-infrastructure
 created: 2026-07-04
-started: null
+started: 2026-07-04
 due: null
-finished: null
+finished: 2026-07-04
 tags: ["#infra", "#oci"]
 estimate: null
 depends_on: ["TASK-030-provision-oci-vm"]
@@ -21,7 +21,7 @@ related: []
 Open the ports the board and Gitea need, in both places OCI requires it.
 
 ## Acceptance Criteria
-- [ ] curl to 80/443 from outside reaches the VM
+- [x] curl to 80/443 from outside reaches the VM
 
 ## Subtasks
 
