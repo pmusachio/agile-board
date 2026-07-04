@@ -1,0 +1,21 @@
+#!/bin/sh
+# Publish hook: on every push to main, checks the new tree out directly into
+# /srv/board (the directory Caddy serves as static files) and rebuilds
+# stories/index.json. Runs inside the gitea container (needs `node` on PATH —
+# see gitea.Dockerfile).
+#
+# Install by copying this file to the bare repo's own hooks/post-receive,
+# e.g. /data/git/repositories/<owner>/<repo>.git/hooks/post-receive inside the
+# gitea container, and `chmod +x` it. See docs/RUNBOOK.md.
+set -eu
+
+TARGET_DIR=/srv/board
+BRANCH=main
+REPO_DIR=$(pwd) # git invokes hooks with cwd = the bare repo (<repo>.git)
+
+while read -r old_sha new_sha ref_name; do
+  [ "$ref_name" = "refs/heads/$BRANCH" ] || continue
+  git --git-dir="$REPO_DIR" --work-tree="$TARGET_DIR" checkout -f "$BRANCH"
+  ( cd "$TARGET_DIR" && node scripts/build-manifest.mjs )
+  echo "agile-board: published $new_sha to $TARGET_DIR"
+done

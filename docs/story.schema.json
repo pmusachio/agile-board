@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/pmusachio/agile-board/docs/story.schema.json",
+  "title": "Story",
+  "description": "Frontmatter schema for a single story file under stories/*.md. See docs/PRD.md #6 for rationale.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "status", "priority", "created"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^(TASK|EPIC)-[A-Za-z0-9_-]+$",
+      "description": "Stable identifier, unique across the repo. Must match the file name: stories/<id>-<slug>.md"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": ["todo", "in-progress", "in-review", "done"],
+      "description": "Maps 1:1 to a board column. Changing this moves the card."
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "category": {
+      "type": "string",
+      "description": "Freeform label used as a swimlane/filter, e.g. infra, frontend, docs."
+    },
+    "assignees": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^@" },
+      "default": []
+    },
+    "epic": {
+      "type": "string",
+      "description": "Id of the parent epic/project this story belongs to. Also a graph node.",
+      "pattern": "^(TASK|EPIC)-[A-Za-z0-9_-]+$"
+    },
+    "created": {
+      "type": "string",
+      "format": "date"
+    },
+    "started": {
+      "type": ["string", "null"],
+      "format": "date"
+    },
+    "due": {
+      "type": ["string", "null"],
+      "format": "date"
+    },
+    "finished": {
+      "type": ["string", "null"],
+      "format": "date"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^#" },
+      "default": []
+    },
+    "estimate": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Optional story points."
+    },
+    "depends_on": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^(TASK|EPIC)-[A-Za-z0-9_-]+$" },
+      "default": [],
+      "description": "Graph edge: this story needs those to complete first."
+    },
+    "blocks": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^(TASK|EPIC)-[A-Za-z0-9_-]+$" },
+      "default": [],
+      "description": "Graph edge: this story blocks those."
+    },
+    "related": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^\\[\\[(TASK|EPIC)-[A-Za-z0-9_-]+\\]\\]$" },
+      "default": [],
+      "description": "Wiki-links to related stories/epics, e.g. \"[[EPIC-board-mvp1]]\". Future knowledge-graph edges (MVP2)."
+    }
+  }
+}

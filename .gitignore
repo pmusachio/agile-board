@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- agile-board project ---
+.DS_Store
+node_modules/
+
+# Generated board manifest (built by scripts/build-manifest.mjs, not source of truth)
+stories/index.json
+
+# Local infra secrets / overrides
+infra/.env
+infra/*.env
+infra/data/
+*.local.yml

@@ -1,0 +1,53 @@
+# Self-hosted stack for agile-board: Gitea (git server + source of truth) and
+# Caddy (automatic HTTPS + static file server for the published board).
+# See docs/RUNBOOK.md for the full provisioning walkthrough.
+services:
+  gitea:
+    build:
+      context: .
+      dockerfile: gitea.Dockerfile
+    restart: unless-stopped
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__server__DOMAIN=${DOMAIN}
+      - GITEA__server__ROOT_URL=https://${DOMAIN}/git/
+      - GITEA__server__HTTP_PORT=3000
+      - GITEA__server__SSH_DOMAIN=${DOMAIN}
+      - GITEA__server__SSH_PORT=2222
+      - GITEA__server__SSH_LISTEN_PORT=22
+    volumes:
+      - ./data/gitea:/data
+      # Shared with Caddy: the post-receive hook (installed per docs/RUNBOOK.md)
+      # checks a push out directly into this directory as static files to serve.
+      - board-site:/srv/board
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "2222:22"
+    networks: [board]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      - DOMAIN=${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy-data:/data
+      - ./data/caddy-config:/config
+      - board-site:/srv/board:ro
+    depends_on: [gitea]
+    networks: [board]
+
+volumes:
+  # A named volume (not a host bind mount) so it's created with consistent
+  # ownership regardless of host OS — see docs/RUNBOOK.md for the one-time
+  # `chown 1000:1000` step needed inside it before the first push.
+  board-site:
+
+networks:
+  board:

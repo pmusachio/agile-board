@@ -1,0 +1,34 @@
+agile-board — third-party notices
+==================================
+
+board/scripts/00-theme.js .. 12-init.js
+board/styles/*.css
+--------------------------------------------------------------------
+Vendored, UNMODIFIED, from:
+
+  ioniks/MarkdownTaskManager
+  https://github.com/ioniks/MarkdownTaskManager
+  commit f173f0d09274a8ce107fdfefda49823e2992e88f (2026-06-20)
+  src/scripts/*.js and src/styles/*.css
+
+Licensed under the Mozilla Public License, v. 2.0. A copy of the license is
+available at https://mozilla.org/MPL/2.0/ and in LICENSE-MPL-2.0 in this
+directory. These files are redistributed as-is; no changes have been made to
+their contents.
+
+board/index.html
+--------------------------------------------------------------------
+A MODIFICATION (MPL-2.0 §1.9) of src/index.html from the same upstream
+project and commit referenced above. Changes: the build:css/build:js
+placeholders (filled by upstream's build step) were replaced with direct
+<link>/<script> tags, since this fork ships the unbundled source directly
+with no build step; the header title and welcome-screen copy were translated
+to English; a script tag for board/scripts/20-remote.js was added. This file
+remains available in Source Code Form under MPL-2.0, as part of this public
+repository.
+
+board/scripts/20-remote.js
+--------------------------------------------------------------------
+Original work by Paulo Musachio, part of agile-board. Licensed under MIT
+(see ../LICENSE), same as the rest of this repository outside of the
+upstream-vendored files listed above.

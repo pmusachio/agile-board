@@ -1,0 +1,13 @@
+{$DOMAIN} {
+	# Gitea UI, git-over-HTTP(S), and API, reverse-proxied under /git/.
+	handle_path /git/* {
+		reverse_proxy gitea:3000
+	}
+
+	# The published board (and repo files in general) — static, read-only.
+	# Public board link: https://{$DOMAIN}/board/
+	handle {
+		root * /srv/board
+		file_server
+	}
+}
