@@ -208,10 +208,16 @@ Verify it's actually working (don't just trust that it's configured):
 curl -H "Authorization: token <your-gitea-token>" \
   "https://<your-domain>/git/api/v1/repos/<owner>/agile-board/push_mirrors"
 ```
-`last_error` should be empty. There's also a **"Synchronize Now"** button next to
-the mirror in the same settings page, to force an immediate sync instead of
-waiting for the next push or the configured interval — useful for testing the
-setup right after creating it.
+`last_error` should be empty. **`sync_on_commit: true` in that response doesn't
+mean "syncs within seconds of a push"** — in practice it can sit until the next
+scheduled interval (which defaults to roughly a day) unless nudged. To force an
+immediate sync, either click **"Synchronize Now"** next to the mirror in the
+settings page, or call the same thing from a script (the token scope this
+runbook already uses, `write:repository`, is enough — no admin scope needed):
+```
+curl -X POST -H "Authorization: token <your-gitea-token>" \
+  "https://<your-domain>/git/api/v1/repos/<owner>/agile-board/push_mirrors-sync"
+```
 
 (Alternative, no mirror feature needed: add GitHub as a second `git remote`
 locally and `git push` to both — more manual, but zero extra config on the
