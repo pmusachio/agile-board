@@ -156,9 +156,128 @@ EPIC-2 (viewer) and EPIC-3 (infra) can proceed in parallel once EPIC-1's schema 
 
 ---
 
-## Roadmap tasks (tracked, not scheduled for MVP1)
+# TASKS — MVP2 (Ask & relate)
 
-- **MVP2 — Ask & relate:** graph builder from frontmatter edges + `[[wiki-links]]`;
-  retrieval over bodies; chat panel in the board; model selection (Gemini/Claude).
+Engineering breakdown for MVP2, derived from [PRD.md §14](./PRD.md#14-mvp2--ask--relate-ai-over-the-knowledge-graph).
+Same conventions as MVP1 above. Seeded as `todo` stories under `stories/` (EPIC-007..011)
+so this backlog is visible on the live board itself, dogfooding-style, same as MVP1 was.
+
+---
+
+## Milestone sequence
+
+```
+EPIC-7 graph builder ─► EPIC-8 context assembly ─► EPIC-9 assistant backend ─┐
+                                                                              ├─► EPIC-11 launch
+                                                          EPIC-10 chat UI ───┘
+```
+
+EPIC-9 (backend) needs EPIC-8 (context) to have something to send the model; EPIC-10
+(chat UI) needs EPIC-9 (backend) to have something to call.
+
+## EPIC-7 — Knowledge graph builder
+
+- [ ] **TASK-070 — Graph schema & builder script**
+  - Define `stories/graph.json`'s shape: one node per story (id/title/status/type) plus
+    edges for `depends_on`/`blocks` (and their reverse: "blocked by"/"blocks" both
+    queryable without an O(n) scan) and `epic` (reversed into per-epic child lists).
+    `scripts/build-graph.mjs`, analogous to `build-manifest.mjs`.
+  - AC: running it over the current `stories/` produces a valid graph with correct
+    bidirectional edges for every relationship in the corpus.
+  - deps: — (edges already exist in the schema, D3/G2)
+- [ ] **TASK-071 — Wiki-link body resolution**
+  - Parse `[[TASK-x]]`/`[[EPIC-x]]` references found **inside story bodies** (not just the
+    frontmatter `related` array) into additional graph edges — the PRD always described
+    wiki-links as graph edges (§6); MVP1 only ever parsed the frontmatter array.
+  - AC: a `[[TASK-xxx]]` mention anywhere in a story's Markdown body shows up as an edge.
+  - deps: TASK-070
+- [ ] **TASK-072 — Wire into the publish pipeline**
+  - Extend the existing `post-receive` hook / `validate-stories.mjs` to (re)build
+    `graph.json` on every push, same as `index.json` today.
+  - AC: pushing a story with a new `depends_on` edge updates `graph.json` on the live
+    server with no manual step.
+  - deps: TASK-070, TASK-035 (existing publish pipeline)
+
+## EPIC-8 — Context assembly for the assistant
+
+- [ ] **TASK-080 — Whole-corpus context assembler**
+  - Given the current corpus size, start with the simplest correct approach (D9): one
+    function that assembles **all** stories' frontmatter + body + the graph into one
+    bounded text block — no embeddings, no vector DB, no ranking/selection.
+  - AC: produces one context blob, under a defined token budget, from the full live
+    corpus.
+  - deps: TASK-070
+  - Notes: explicitly *not* building retrieval/ranking yet (see PRD §14.4) — revisit only
+    if story count grows enough to threaten the budget.
+- [ ] **TASK-081 — Defensive size guard**
+  - If the assembled context ever exceeds the model's budget, truncate/prioritize
+    (drop story bodies before graph structure) rather than failing opaquely.
+  - AC: an artificially oversized fixture triggers the truncation path predictably.
+  - deps: TASK-080
+
+## EPIC-9 — Assistant backend service
+
+- [ ] **TASK-090 — Minimal API service scaffold**
+  - Small Node.js HTTP service (matches existing `scripts/*.mjs` tooling — no new
+    language, per D10), one endpoint (`POST /api/ask`); new Docker Compose service
+    alongside `gitea`/`caddy`; new Caddy route.
+  - AC: a request through Caddy reaches the service end-to-end.
+  - deps: — (infra already exists, EPIC-3)
+- [ ] **TASK-091 — Gitea-token auth guard**
+  - Verify the caller's bearer token against Gitea's `/api/v1/user` (same call
+    `21-write.js`'s `fetchUsername()` already makes client-side) before doing anything
+    else; reject missing/invalid tokens. No new auth system.
+  - AC: no/bad token → rejected; a real logged-in user's token → accepted.
+  - deps: TASK-090
+- [ ] **TASK-092 — Gemini call**
+  - Wire the assembled context (EPIC-8) + the user's question into a Gemini API call
+    using a server-side-only API key (env var, never committed — same discipline as the
+    Gitea admin/mirror secrets, §8); return the answer.
+  - AC: a real question against the live corpus returns a real, relevant answer.
+  - deps: TASK-091, TASK-080
+- [ ] **TASK-093 — Basic abuse guard**
+  - Simple per-user rate limit (e.g. N requests/minute) — cheap now that every request
+    carries a real identity (TASK-091).
+  - AC: rapid-fire requests from one account are throttled with a clear error, not
+    silently billed forever.
+  - deps: TASK-092
+
+## EPIC-10 — Chat UI in the board
+
+- [ ] **TASK-100 — Chat panel (logged-in only)**
+  - New additive script `board/scripts/22-assistant.js` (next number after
+    `21-write.js`, same non-invasive layering — no vendored file touched). Panel/button
+    gated on `window.__agileBoardWriteMode` (the same flag write-mode already sets);
+    calls the new backend with the already-stored Gitea token.
+  - AC: logged in, a typed question returns a rendered answer; logged out, no chat
+    affordance renders at all.
+  - deps: TASK-092
+- [ ] **TASK-101 — Loading/error states**
+  - Pending indicator while waiting on the model; clear error on failure/throttling,
+    reusing the existing `showNotification()` convention from write-mode.
+  - AC: a slow or failed request always shows a clear state, never a silently stuck UI.
+  - deps: TASK-100
+
+## EPIC-11 — MVP2 docs & launch
+
+- [ ] **TASK-110 — RUNBOOK: deploy the assistant backend**
+  - New section: Gemini API key provisioning, the new Compose service, the Caddy route —
+    same operational detail level as the existing OCI/Gitea sections.
+  - AC: someone could stand up the backend from the runbook alone.
+  - deps: TASK-090
+- [ ] **TASK-111 — README + PRD sync**
+  - Update README's architecture/roadmap to describe the shipped MVP2 feature, mirroring
+    how D6/write-mode was folded back in after MVP1.5 shipped.
+  - deps: TASK-100, TASK-092
+- [ ] **TASK-112 — End-to-end verification**
+  - A logged-in user asks a real question spanning multiple related stories and gets a
+    correct, graph-grounded answer; a logged-out visitor sees no AI affordance.
+  - AC: PRD §14.5 Definition of Done fully checked.
+  - deps: EPIC-7, EPIC-8, EPIC-9, EPIC-10
+
+---
+
+## Roadmap tasks (tracked, not scheduled yet)
+
 - **MVP3 — Auto-ingest:** transcript → extractor → proposed Gitea branch/PR →
   human approval → merge → board updates.

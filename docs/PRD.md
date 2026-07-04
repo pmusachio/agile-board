@@ -5,7 +5,8 @@
 > self-hosted Gitea instance. Built to be copied: minimal moving parts, no vendor lock-in,
 > and a data model ready for AI on top.
 
-**Status:** Live (MVP1, extended — see D6) · **Owner:** Paulo Musachio · **Last updated:** 2026-07-04
+**Status:** Live (MVP1, extended — see D6) · MVP2 planned, not yet built — see §14 ·
+**Owner:** Paulo Musachio · **Last updated:** 2026-07-04
 **Working title:** `agile-board` (final product name TBD)
 
 > This document was written before the build started and is kept as the
@@ -247,10 +248,11 @@ Adaptations for MVP1:
 ## 11. Roadmap (post-MVP1)
 
 - **MVP2 — Ask & relate (AI over the graph).** Build a knowledge graph from frontmatter
-  edges (`depends_on`/`blocks`/`related`/`epic`) + `[[wiki-links]]`, plus retrieval over
-  story bodies. An assistant answers "what is the team working on?", "what blocks
-  TASK-x?", "how do these projects relate?" — Karpathy "wiki-LLM" style. Adds a chat
-  panel to the board. (Model TBD: Gemini per current preference, or Claude.)
+  edges (`depends_on`/`blocks`/`related`/`epic`) + `[[wiki-links]]`, plus a Gemini-backed
+  assistant that answers "what is the team working on?", "what blocks TASK-x?", "how do
+  these projects relate?" — Karpathy "wiki-LLM" style. Adds a chat panel to the board,
+  gated behind the same Gitea login as write-mode. Planned in detail in §14 (not yet
+  built — see Definition of Done there for current status).
 - **MVP3 — Auto-ingest rituals.** Pipeline ingests transcripts of dailies/plannings,
   extracts status changes / new tasks / decisions / dependencies, and proposes them as a
   **branch/PR on Gitea** for human approval before merge. Human-in-the-loop; the board
@@ -268,6 +270,9 @@ Adaptations for MVP1:
 | Per-file data model = more viewer work than "small changes" | Keep viewer parsing minimal (frontmatter only); reuse upstream rendering/DnD as-is. Write mode (D6) later added a matching serializer, verified via a round-trip test against every real story before ever touching the live board. |
 | Free domain / Let's Encrypt rate limits | DuckDNS + Caddy; cache certs on a persistent volume. |
 | Leaking secrets (Gitea admin, mirror token) | Never commit; `.gitignore` + documented env setup. |
+| *(MVP2)* LLM API cost/abuse | Assistant gated behind Gitea login (D8) + a basic per-user rate limit; Gemini's free tier keeps worst-case cost near zero regardless. |
+| *(MVP2)* Prompt injection via story content (a story body could contain text aimed at the assistant, not the user) | Assistant is read/reason-only in MVP2 — no write capability — so the worst case is a misleading answer, not a board mutation. Revisit if a later MVP gives it write access. |
+| *(MVP2)* Gemini availability/quota/terms change | Context-assembly design keeps the model call as one swappable piece (D9); not deeply coupled to one provider's API shape. |
 
 ## 13. Decisions log
 
@@ -279,6 +284,10 @@ Adaptations for MVP1:
 | D4 | MVP1 editing scope | **Read-only shared link + local editing via git** | 2026-07-04 |
 | D5 | Viewer base | **Fork MarkdownTaskManager** (MPL-2.0) | 2026-07-04 |
 | D6 | MVP1 editing scope, revisited | **Add logged-in browser editing** (Gitea OAuth2 + PKCE, drag-and-drop, edit modal, writes via Contents API as real commits) alongside git; **remove** upstream's local File System Access edit mode entirely rather than keep it dormant | 2026-07-04 |
+| D7 | MVP2 LLM provider | **Gemini** (Google AI Studio) — generous free tier keeps this a genuinely free-infra project, matching the OCI Always-Free ethos | 2026-07-04 |
+| D8 | MVP2 assistant access | **Gitea login required**, same OAuth2 as write-mode — not open to anonymous viewers, so every assistant call is tied to an accountable identity | 2026-07-04 |
+| D9 | MVP2 retrieval approach | **Whole-corpus context assembly** (the graph + all story bodies, no embeddings/vector DB) — the ~40-50 story corpus fits comfortably in Gemini's context window, so similarity search would be premature; revisit only if corpus growth makes that stop being true | 2026-07-04 |
+| D10 | MVP2 backend hosting | A new minimal **Node.js** service on the same OCI VM (one more Docker Compose service + Caddy route) — the project's first backend, needed because an LLM API key can't safely live in browser JS the way Gitea's OAuth2 could; Node.js chosen to match existing tooling (`scripts/*.mjs`), not a new language | 2026-07-04 |
 
 **Why D6:** after using the live MVP1 board for real, read-only-plus-git proved too
 limited day-to-day — no drag-and-drop, no way to add information to a card without a
@@ -286,4 +295,128 @@ local checkout, and "git-only" was itself a barrier for exactly the non-technica
 teammates this project set out to include. Self-service Gitea accounts (no approval
 needed) resolved the access concern without needing Google or any new infrastructure.
 
-**Still open:** final product name; MVP2 model (Gemini vs Claude).
+**Why D7–D10:** see §14 for the full MVP2 plan these decisions were made for.
+
+**Still open:** final product name.
+
+---
+
+## 14. MVP2 — Ask & relate (AI over the knowledge graph)
+
+**Status:** Planned, not yet built. This section is the PRD for MVP2, written the same
+way MVP1's was: before the build starts, decisions dated not rewritten. See docs/TASKS.md
+for the task breakdown and `stories/EPIC-007..011-*.md` for the seeded (todo) backlog.
+
+### 14.1 Problem (recap)
+
+MVP1 made the data AI-ready (§1) but built no AI. The relationship fields
+(`depends_on`/`blocks`/`related`/`epic`) and `[[wiki-links]]` have been sitting in every
+story's frontmatter since day one, unused by anything except a human reading the raw
+Markdown. MVP2 is where that bet gets cashed in: turn those fields into a real graph and
+let an assistant answer questions over it, instead of a teammate manually tracing edges
+across 40+ files.
+
+### 14.2 Goals & Non-Goals (MVP2)
+
+**Goals**
+- H1 — A **logged-in** user can ask a natural-language question ("what's blocked on
+  TASK-092?", "what is @paulo working on?", "how do these two stories relate?") and get an
+  answer grounded in the actual current stories/graph, not a generic chatbot guess.
+- H2 — `depends_on`/`blocks`/`related`/`epic` plus `[[wiki-links]]` inside story bodies
+  become a real, buildable graph (`stories/graph.json`), validating the MVP1 data-model
+  bet (D3).
+- H3 — No new secret exposed client-side: the Gemini API key lives only in a new backend
+  service, never in browser JS — unlike Gitea's OAuth2 (D1.5-era), which was safe to do
+  with no backend at all.
+- H4 — Usage is attributable and throttleable from day one: every assistant call carries
+  the caller's real Gitea identity (reusing MVP1.5's login), gated by a basic per-user
+  rate limit.
+- H5 — Stays on free/cheap infrastructure: Gemini's free tier + one more small service on
+  the existing OCI Always-Free VM. No new paid infra, no new cloud account.
+
+**Non-Goals (explicitly out of scope for MVP2)**
+- Anonymous/unauthenticated assistant access (D8) — chat is gated behind the same Gitea
+  login as write-mode; the "no login to view" board itself is unaffected.
+- A vector database or embeddings pipeline (D9) — see §14.4.
+- The assistant **writing** to the board. MVP2 is read/reason-only; the assistant saying
+  "TASK-x looks done, want me to mark it?" is in scope, actually changing it is not — that
+  human-approved write path is MVP3's job (transcript → proposed PR).
+- Streaming responses, multi-turn conversation memory, chat history persisted across
+  sessions. One question in, one grounded answer out, is enough to prove the concept.
+
+### 14.3 Architecture (MVP2)
+
+```mermaid
+flowchart LR
+  subgraph oci[OCI Always Free VM]
+    G[(Gitea - git server)]
+    H[post-receive hook<br/>+ build graph.json]
+    S[/srv/board static files/]
+    C[Caddy - reverse proxy]
+    Asst[assistant-api<br/>Node.js, new service]
+    G --> H --> S
+    C --- S
+    C --- G
+    C --- Asst
+  end
+
+  subgraph ext[External]
+    Gem[(Gemini API)]
+  end
+
+  subgraph viewer[Browser - logged in]
+    V[board/index.html<br/>+ 22-assistant.js chat panel]
+  end
+
+  V -->|question + stored Gitea token| C
+  C -->|proxy /api/ask| Asst
+  Asst -->|verify token| G
+  Asst -->|assembled context + question| Gem
+  Gem -->|answer| Asst
+  Asst -->|answer| V
+```
+
+**Flow:** the chat panel (only rendered when `window.__agileBoardWriteMode` is true, same
+flag write-mode already sets) sends the question plus the user's existing stored Gitea
+token to a new `assistant-api` service, proxied by the same Caddy instance. The service
+verifies the token against Gitea's own `/api/v1/user` (exactly the call the client already
+makes in `21-write.js`'s `fetchUsername()` — no new auth system), assembles context from
+`stories/graph.json` + the story bodies, calls Gemini with a server-side-only API key, and
+returns the answer. The board itself gains no new public surface: `assistant-api` is only
+reachable through Caddy, and only does anything for a request carrying a valid token.
+
+### 14.4 Data model & retrieval
+
+**No `docs/story.schema.json` changes needed** — `depends_on`, `blocks`, `related`, and
+`epic` were already specified as graph edges in MVP1 (§6, D3); MVP2 consumes them, it
+doesn't add fields. Two new pieces of *generated* data (both build artifacts, gitignored
+like `stories/index.json`):
+
+- **`stories/graph.json`** — nodes (one per story) and edges: `depends_on`/`blocks`
+  reversed too (so "what's blocked on X" is a direct lookup, not an O(n) scan), `epic`
+  reversed into per-epic child lists, and `related` wiki-links resolved from **both**
+  frontmatter and `[[wiki-link]]` references found inside story bodies (the PRD always
+  described wiki-links as graph edges, §6 — MVP1 only ever parsed the frontmatter array,
+  never the body text; MVP2 finishes that).
+- **Context for the model.** D9: for a corpus this size (~40-50 stories today), the whole
+  graph plus every story's full Markdown body fits comfortably inside Gemini's context
+  window. So MVP2's "retrieval" is **assemble everything, not rank and select** — no
+  embeddings, no vector store, no similarity search. That is not a corner cut, it is the
+  simpler *and* more correct choice at this scale (an assistant that can only see the
+  stories a fuzzy search happened to retrieve is strictly worse than one that sees the
+  whole board). A defensive size guard (truncate bodies before dropping graph structure)
+  exists so this degrades predictably if the corpus ever outgrows the budget, rather than
+  erroring opaquely — but building real retrieval before that's true would be solving a
+  problem this project doesn't have yet.
+
+### 14.5 Definition of Done (MVP2)
+
+- [ ] A logged-in user asks a real question spanning multiple related stories (e.g. "what
+      blocks TASK-092?") and gets a correct, graph-grounded answer.
+- [ ] A logged-out visitor sees no AI affordance at all — same info-hiding pattern
+      write-mode already uses for drag/edit controls.
+- [ ] The Gemini API key is never present in any response or file the browser can fetch.
+- [ ] A basic per-user rate limit exists and demonstrably triggers under rapid repeated use.
+- [ ] `stories/graph.json` correctly reflects every `depends_on`/`blocks`/`related`/`epic`
+      edge and every `[[wiki-link]]` found in a story body, across the full corpus.
+- [ ] `docs/RUNBOOK.md` documents standing up the assistant backend from scratch.
