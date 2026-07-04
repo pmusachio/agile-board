@@ -540,7 +540,19 @@
     // first time, the flag it checks already reflects a *pre-existing* login
     // from an earlier visit. A same-page fresh OAuth redirect-back is handled
     // separately below (there's no token yet at this point in that case).
+    //
+    // activateWriteMode() is called right here too — synchronously, based only
+    // on isLoggedIn() (a plain localStorage check) — rather than waiting on
+    // refreshAuthUI()'s async username fetch below. That fetch exists only to
+    // put "@username" in the header button; gating the *real* autoSave()
+    // override on it created a real race: a drag-and-drop can complete faster
+    // than that fetch resolves, so the card visually moves (the board was
+    // already un-sanitized from the flag alone) but doesn't persist, since
+    // autoSave() itself hadn't been overridden yet. Editing didn't show the
+    // bug because opening the modal and submitting a form is slow enough for
+    // the fetch to finish first — this is exactly what was reported.
     window.__agileBoardWriteMode = isLoggedIn();
+    if (window.__agileBoardWriteMode) activateWriteMode();
 
     // Wrap renderKanban once more (stacking on top of 20-remote.js's own wrap,
     // same pattern) purely to establish the diff baseline the first time the
@@ -559,9 +571,10 @@
         wireAuthButton();
 
         const justLoggedIn = await handleOAuthCallback();
-        await refreshAuthUI();
-
         if (justLoggedIn) {
+            // isLoggedIn() was false at top-level (no token existed before this
+            // redirect), so activateWriteMode() hasn't run yet for this session.
+            window.__agileBoardWriteMode = true;
             activateWriteMode();
             // 20-remote.js's manifest fetch may or may not have populated
             // tasks[] yet — only re-render if it already has; otherwise its
@@ -569,8 +582,10 @@
             if (Array.isArray(window.tasks) && typeof renderKanban === 'function') {
                 renderKanban();
             }
-        } else if (isLoggedIn()) {
-            activateWriteMode();
         }
+
+        // Cosmetic only from here: the button label, and a graceful downgrade
+        // to read-only if the stored token turns out to be invalid/expired.
+        await refreshAuthUI();
     });
 })();
