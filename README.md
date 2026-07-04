@@ -10,6 +10,9 @@ This is MVP1 of a three-stage plan: get a usable, shareable board out first
 reasoning and every design decision are in [docs/PRD.md](docs/PRD.md); this
 README is the short version.
 
+**Live demo:** https://agile-board.duckdns.org/board/ — a personal Always-Free
+OCI instance, so treat it as a demo, not an SLA.
+
 ## The problem
 
 Engineering teams need a shared board (Asana-style: stories, projects,

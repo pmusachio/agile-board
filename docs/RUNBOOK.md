@@ -15,36 +15,68 @@ for the architecture this implements.
 ## 1. Provision the VM
 
 1. OCI Console → **Compute → Instances → Create Instance**.
-2. Image: **Ubuntu** (latest LTS). Shape: **VM.Standard.A1.Flex** (Ampere ARM,
-   Always Free-eligible) — 2-4 OCPUs / 12-24 GB RAM is comfortably within the
-   Always Free ARM allowance.
-3. Add your SSH public key under "Add SSH keys".
+2. Image: **Ubuntu** (latest LTS). Preferred shape: **VM.Standard.A1.Flex** (Ampere
+   ARM, Always Free-eligible) — 2-4 OCPUs / 12-24 GB RAM is comfortably within the
+   Always Free ARM allowance. In practice you may instead end up on
+   **VM.Standard.E2.1.Micro** (the x86 Always Free shape, 1 OCPU / 1GB RAM, no swap)
+   — either OCI capacity or how you clicked through "let Oracle choose" can land you
+   there. Both are $0 on Always Free; if you get the small one, add swap (§1a below)
+   before deploying the stack.
+3. **Add SSH keys**: either paste a public key you already have (recommended — you
+   already hold the matching private key), or use "Generate a key pair for me", in
+   which case OCI has your *browser* download the private key file (something like
+   `ssh-key-<date>.key`) — it lands wherever your browser saves downloads (e.g.
+   `~/Downloads`) on whatever machine you clicked "Create" from. You'll need that
+   file (not just the `.pub`) to SSH in; `chmod 600` it first.
 4. Create/reuse a VCN with a public subnet, and assign a public IPv4 address.
 5. **Known gotcha:** Always Free Ampere capacity is sometimes exhausted in a given
    Availability Domain. If creation fails with an out-of-capacity error, retry in
    another AD, or try again later — this is common and not a configuration problem.
 6. Once running, note the public IP and confirm SSH access:
    ```
-   ssh ubuntu@<public-ip>
+   ssh -i /path/to/your.key ubuntu@<public-ip>
    ```
+
+### 1a. If you ended up on the small (1GB RAM) shape
+
+No swap is configured by default, and Gitea + Caddy in Docker is tight in 1GB.
+Add a 2GB swapfile once, before deploying the stack:
+```
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
 
 ## 2. Networking (the two-firewall gotcha)
 
 OCI requires ports to be open in **both** places — missing either one leaves the
 port closed:
 
-1. **Cloud-level**: VCN → the instance's subnet → Security List (or a Network
-   Security Group attached to the instance) → add ingress rules for TCP 22, 80, 443
-   from `0.0.0.0/0`.
-2. **OS-level**: Oracle's Ubuntu images ship a restrictive default `iptables`
-   ruleset. On the VM:
+1. **Cloud-level**: this is a Security List (or NSG), not the instance's own
+   "Security" tab — that tab is about Shielded Instance settings (Secure Boot, TPM)
+   and has nothing to do with network ports; it's an easy wrong turn. From the
+   instance's detail page: click the **"Network"** tab instead → click through to
+   the attached VNIC → the subnet → the VCN → **Security Lists** in the VCN's left
+   menu → the default list → **Add Ingress Rules**. Add TCP 22, 80, and 443, each
+   with Source CIDR `0.0.0.0/0`. (Equivalent path: ☰ menu → Networking → Virtual
+   Cloud Networks → your VCN → Security Lists.)
+2. **OS-level**: Oracle's Ubuntu images ship a default `iptables` ruleset that
+   REJECTs everything except SSH. Insert ACCEPT rules for 80/443 *before* that
+   final REJECT rule — find its line number rather than assuming one, since it
+   varies by image:
    ```
-   sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
-   sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT
+   sudo iptables -L INPUT -n --line-numbers   # note the line number of the trailing REJECT rule, call it N
+   sudo iptables -I INPUT N   -m state --state NEW -p tcp --dport 80  -j ACCEPT
+   sudo iptables -I INPUT N+1 -m state --state NEW -p tcp --dport 443 -j ACCEPT   # literally N+1, e.g. if N=5 use 6
    sudo netfilter-persistent save   # persist across reboots (package: iptables-persistent)
    ```
-3. Verify from your own machine: `curl -I http://<public-ip>` should connect
-   (connection refused/timeout means one of the two firewalls above is still closed).
+3. Verify from your own machine (not from inside an SSH session into the VM):
+   `curl -I http://<public-ip>` should connect once both firewalls are open. A
+   **timeout** usually means the cloud-level Security List rule (step 1) hasn't
+   taken effect; **connection refused** usually points at the OS-level rule
+   (step 2) still being the blocker.
 
 ## 3. DNS
 
@@ -81,50 +113,109 @@ docker compose version   # confirm the compose plugin is present
    docker compose restart gitea
    ```
 5. Visit `https://<your-domain>/git/` — Caddy should present a valid Let's Encrypt
-   certificate and Gitea's first-run install screen.
+   certificate. If it doesn't yet (a TLS error, or `docker compose logs caddy`
+   shows `"Timeout during connect (likely firewall problem)"`), §2 isn't fully
+   open yet — fix that first. **Note:** after several failed attempts Caddy
+   automatically falls back to Let's Encrypt's *staging* CA (to avoid burning
+   the production rate limit) — a staging cert isn't trusted by browsers. Once
+   §2 is genuinely fixed, `docker compose restart caddy` to force a clean
+   attempt against production rather than waiting for the next backoff/retry.
 
 ## 6. Gitea first-run setup
 
-1. Complete Gitea's install screen (it should already have sane defaults from the
-   environment variables in `docker-compose.yml`) and create the **admin account**
-   when prompted.
-2. As the admin, create an organization (or just use your user) and a new,
-   empty repository to hold this project, e.g. `agile-board`.
+`docker-compose.yml` sets `GITEA__security__INSTALL_LOCK=true`, so Gitea boots
+straight into a ready SQLite instance — **the web install wizard never
+appears**. Create the admin account and the repo without touching a browser:
+
+1. Create the admin user:
+   ```
+   docker compose exec -u git gitea gitea admin user create \
+     --username <you> --email <you@example.com> --admin --must-change-password=false \
+     --password '<a-strong-password>'
+   ```
+   Don't let this password linger in your shell history/logs any more than
+   necessary — change it via Gitea's UI afterward if you'd rather not have it
+   in a terminal scrollback.
+2. Create the repo via the API (avoids the UI entirely):
+   ```
+   curl -u '<you>:<that-password>' -X POST "https://<your-domain>/git/api/v1/user/repos" \
+     -H 'Content-Type: application/json' \
+     -d '{"name":"agile-board","description":"agile-board","private":false}'
+   ```
+   The response's `clone_url` is what you push to next.
 3. Push this repo to it:
    ```
    git remote add gitea https://<your-domain>/git/<owner>/agile-board.git
    git push gitea main
    ```
-   (Or over SSH: `git remote add gitea ssh://git@<your-domain>:2222/<owner>/agile-board.git`.)
+   (Or over SSH: `git remote add gitea ssh://git@<your-domain>:2222/<owner>/agile-board.git`
+   — but that needs your key added to the Gitea *user* account separately from
+   the VM's own SSH, since Gitea runs its own internal SSH server on the 2222
+   mapping; the HTTPS route above is simpler for a first push.)
+
+   For repeated/scripted pushes without typing the password each time, create
+   a scoped access token instead of reusing the password:
+   ```
+   curl -u '<you>:<that-password>' -X POST "https://<your-domain>/git/api/v1/users/<you>/tokens" \
+     -H 'Content-Type: application/json' -d '{"name":"push","scopes":["write:repository"]}'
+   git -c http.extraHeader="Authorization: token <sha1-from-response>" push https://<your-domain>/git/<owner>/agile-board.git main
+   ```
 
 ## 7. Install the publish hook
 
 The hook in [`infra/hooks/post-receive`](../infra/hooks/post-receive) checks a push
-out directly into `/srv/board` and rebuilds `stories/index.json`. Install it into
-the bare repository Gitea created:
+out directly into `/srv/board` and rebuilds `stories/index.json`. Confirm the bare
+repository's real path first rather than assuming it — it's usually
+`/data/git/repositories/<owner>/agile-board.git` (Gitea's default
+`repository.ROOT`), but don't guess:
 ```
-docker compose cp infra/hooks/post-receive gitea:/data/git/repositories/<owner>/agile-board.git/hooks/post-receive
-docker compose exec --user root gitea chmod +x /data/git/repositories/<owner>/agile-board.git/hooks/post-receive
+docker compose exec -T gitea find /data -maxdepth 4 -iname '*.git' -type d
 ```
-`/data/git/repositories` is Gitea's default `repository.ROOT` — if you changed
-that setting, adjust the path accordingly.
+Then install the hook — going through a `docker compose cp` of a *local* copy of
+the file is more reliable than a relative path from wherever your shell happens to
+be `cd`'d into on the VM:
+```
+scp infra/hooks/post-receive ubuntu@<public-ip>:/tmp/post-receive
+docker compose cp /tmp/post-receive gitea:<path-from-above>/hooks/post-receive
+docker compose exec -u root gitea sh -c 'chmod +x <path-from-above>/hooks/post-receive && chown git:git <path-from-above>/hooks/post-receive'
+```
 
 Push again (or `git push gitea main` if step 6 was the only push so far) and check:
 ```
 docker compose logs gitea | grep agile-board
 ```
 You should see `agile-board: published <sha> to /srv/board`. Visit
-`https://<your-domain>/board/` — the live board should now render.
+`https://<your-domain>/board/` — the live board should now render. If instead you
+see a Node `ERR_MODULE_NOT_FOUND` for `scripts/lib/frontmatter.mjs`, check your
+`.gitignore` doesn't have a stray generic `lib/` rule silently excluding it from
+what actually got pushed (this happened once — a leftover from an unrelated
+project template).
 
 ## 8. Mirror to GitHub
 
 In the Gitea repo → **Settings → Repository → Push Mirror**, add
 `https://github.com/<you>/agile-board.git` with a
 [GitHub personal access token](https://github.com/settings/tokens) (repo scope) as
-the credential. Gitea will push every update to GitHub automatically, keeping full
-history there for the portfolio. (Alternative, no mirror feature needed: add GitHub
-as a second `git remote` locally and `git push` to both — more manual, but zero
-extra config on the server.)
+the credential. **Both** the username and the token fields need to actually be
+filled in and saved — if the mirror is created without them, it fails *silently*
+on every sync attempt with `could not read Username for 'https://github.com':
+terminal prompts disabled`, and simply re-saving the settings doesn't always
+pick the credentials back up. If you hit that error, delete the push mirror and
+re-add it from scratch with both fields filled in.
+
+Verify it's actually working (don't just trust that it's configured):
+```
+curl -H "Authorization: token <your-gitea-token>" \
+  "https://<your-domain>/git/api/v1/repos/<owner>/agile-board/push_mirrors"
+```
+`last_error` should be empty. There's also a **"Synchronize Now"** button next to
+the mirror in the same settings page, to force an immediate sync instead of
+waiting for the next push or the configured interval — useful for testing the
+setup right after creating it.
+
+(Alternative, no mirror feature needed: add GitHub as a second `git remote`
+locally and `git push` to both — more manual, but zero extra config on the
+server.)
 
 ## 9. Optional: lock the board down
 
