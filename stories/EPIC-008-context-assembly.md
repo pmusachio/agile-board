@@ -1,15 +1,15 @@
 ---
 id: EPIC-008-context-assembly
 title: Context assembly for the assistant
-status: todo
+status: done
 priority: high
 category: data
 assignees: ["@paulo"]
 epic: null
 created: 2026-07-04
-started: null
+started: 2026-07-05
 due: null
-finished: null
+finished: 2026-07-05
 tags: ["#ai", "#data"]
 estimate: null
 depends_on: []
@@ -21,7 +21,7 @@ related: ["[[EPIC-007-knowledge-graph-builder]]", "[[EPIC-009-assistant-backend]
 Assemble the graph plus story bodies into the context the model actually sees. PRD D9: whole-corpus context assembly, not embeddings/vector search — the current ~40-50 story corpus fits comfortably in Gemini's context window, so ranking/retrieval would be solving a problem this project doesn't have yet.
 
 ## Acceptance Criteria
-- [ ] TASK-080..081 complete
+- [x] TASK-080..081 complete
 
 ## Subtasks
 

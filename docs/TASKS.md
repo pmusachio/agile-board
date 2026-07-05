@@ -204,9 +204,9 @@ needs all of them.
     server with no manual step.
   - deps: TASK-070, TASK-035 (existing publish pipeline)
 
-## EPIC-8 — Context assembly for the assistant
+## EPIC-8 — Context assembly for the assistant ✅ done (2026-07-05)
 
-- [ ] **TASK-080 — Whole-corpus context assembler**
+- [x] **TASK-080 — Whole-corpus context assembler**
   - Given the current corpus size, start with the simplest correct approach (D9): one
     function that assembles **all** stories' frontmatter + body + the graph into one
     bounded text block — no embeddings, no vector DB, no ranking/selection.
@@ -215,7 +215,7 @@ needs all of them.
   - deps: TASK-070
   - Notes: explicitly *not* building retrieval/ranking yet (see PRD §14.4) — revisit only
     if story count grows enough to threaten the budget.
-- [ ] **TASK-081 — Defensive size guard**
+- [x] **TASK-081 — Defensive size guard**
   - If the assembled context ever exceeds the model's budget, truncate/prioritize
     (drop story bodies before graph structure) rather than failing opaquely.
   - AC: an artificially oversized fixture triggers the truncation path predictably.
