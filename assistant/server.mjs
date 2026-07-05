@@ -3,9 +3,10 @@
 // npm dependencies, matching this project's convention (see scripts/*.mjs).
 //
 // Endpoints:
-//   GET  /health     - liveness check, no auth
-//   POST /api/ask    - question in, Gemini answer out (TASK-092)
-// (POST /api/propose - the act/write path, added in EPIC-012)
+//   GET  /health      - liveness check, no auth
+//   POST /api/ask     - question in, Gemini answer out (TASK-092)
+//   POST /api/propose - instruction in, a Gitea PR out (EPIC-012). Never
+//                        writes to main directly — see TASK-124.
 //
 // Reads the story corpus from STORIES_DIR (the same directory the
 // post-receive hook publishes to and Caddy serves statically — mounted
@@ -13,18 +14,25 @@
 // always sees the live board. Code (this file, scripts/lib/*) comes from
 // the image; data comes from the shared volume. See docs/PRD.md #14.3.
 import { createServer } from 'node:http';
+import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadCorpus, assembleContext } from '../scripts/lib/context.mjs';
 import { verifyGiteaToken } from './lib/gitea-auth.mjs';
 import { checkRateLimit } from './lib/rate-limit.mjs';
-import { askGemini } from './lib/gemini.mjs';
+import { askGemini, proposeActions } from './lib/gemini.mjs';
+import { ACTION_TOOLS, ActionError, applyActions } from './lib/actions.mjs';
+import { validateProposedChanges } from './lib/validate-tree.mjs';
+import { createProposalPR } from './lib/gitea-pr.mjs';
 
 const PORT = process.env.PORT || 3100;
 const STORIES_DIR = process.env.STORIES_DIR || '/srv/board/stories';
 const GITEA_BASE_URL = process.env.GITEA_BASE_URL; // e.g. http://gitea:3000/
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL; // optional override
+const REPO_OWNER = process.env.REPO_OWNER || 'paulo';
+const REPO_NAME = process.env.REPO_NAME || 'agile-board';
+const SCHEMA_PATH = process.env.SCHEMA_PATH || '/srv/board/docs/story.schema.json';
 
 function readJsonBody(req, maxBytes = 64 * 1024) {
   return new Promise((resolve, reject) => {
@@ -73,6 +81,14 @@ function loadGraph() {
   return JSON.parse(raw);
 }
 
+function loadSchema() {
+  return JSON.parse(readFileSync(SCHEMA_PATH, 'utf8'));
+}
+
+function corpusAsMap(stories) {
+  return new Map(stories.map((s) => [s.data.id, s]));
+}
+
 async function handleAsk(req, res, username) {
   let body;
   try {
@@ -118,12 +134,99 @@ async function handleAsk(req, res, username) {
   }
 }
 
+// TASK-092/123: the act path. Only ever reaches Gitea by creating a branch
+// and opening a PR (gitea-pr.mjs) — there is no code path in this file, or
+// anywhere in assistant/lib/, that writes to `main`. See TASK-124.
+async function handlePropose(req, res, username) {
+  let body;
+  try {
+    body = await readJsonBody(req);
+  } catch (err) {
+    return sendJson(res, 400, { error: err.message });
+  }
+  const instruction = typeof body.instruction === 'string' ? body.instruction.trim() : '';
+  if (!instruction) return sendJson(res, 400, { error: 'missing "instruction" field' });
+
+  if (!GEMINI_API_KEY) {
+    return sendJson(res, 503, { error: 'assistant not configured (missing GEMINI_API_KEY)' });
+  }
+
+  let corpus, context, schema;
+  try {
+    const graph = loadGraph();
+    const stories = loadCorpus(STORIES_DIR);
+    corpus = corpusAsMap(stories);
+    context = assembleContext(stories, graph).context;
+    schema = loadSchema();
+  } catch (err) {
+    console.error('agile-board assistant: failed to load corpus/graph/schema', err.message);
+    return sendJson(res, 500, { error: 'could not load the board corpus' });
+  }
+
+  let actions;
+  try {
+    actions = await proposeActions({
+      apiKey: GEMINI_API_KEY,
+      model: GEMINI_MODEL,
+      systemContext:
+        'You manage a git-native agile board by calling the provided tools. Given an ' +
+        'instruction, call one or more tools to express the intended change — never ' +
+        'describe the change in prose, always use a tool call. Use the knowledge graph ' +
+        "and story content below to find the right story ids. If the instruction doesn't " +
+        'correspond to any available tool, call no tools.\n\n' + context,
+      instruction,
+      tools: ACTION_TOOLS,
+    });
+  } catch (err) {
+    console.error('agile-board assistant: Gemini call failed', err.message);
+    return sendJson(res, 502, { error: 'the assistant could not process that instruction right now' });
+  }
+
+  if (actions.length === 0) {
+    return sendJson(res, 422, { error: "couldn't map that instruction to any available action" });
+  }
+
+  let changes;
+  try {
+    changes = applyActions(corpus, actions);
+  } catch (err) {
+    if (err instanceof ActionError) {
+      return sendJson(res, 422, { error: `invalid instruction: ${err.message}` });
+    }
+    console.error('agile-board assistant: applying actions failed', err.message);
+    return sendJson(res, 500, { error: 'could not apply the proposed change' });
+  }
+
+  const { valid, problems } = validateProposedChanges(corpus, changes, schema);
+  if (!valid) {
+    // Refused before any PR is opened — see TASK-122.
+    return sendJson(res, 422, { error: 'proposed change would be invalid', problems });
+  }
+
+  try {
+    const branchName = `assistant/${Date.now()}-${randomBytes(3).toString('hex')}`;
+    const pr = await createProposalPR({
+      giteaBaseUrl: GITEA_BASE_URL,
+      token: extractToken(req),
+      owner: REPO_OWNER, repo: REPO_NAME, branchName, changes, instruction,
+    });
+    return sendJson(res, 200, {
+      prUrl: pr.url,
+      summary: changes.map((c) => c.data.id),
+      proposedBy: username,
+    });
+  } catch (err) {
+    console.error('agile-board assistant: PR creation failed', err.message);
+    return sendJson(res, 502, { error: 'validated the change but could not open the PR' });
+  }
+}
+
 const server = createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/health') {
     return sendJson(res, 200, { ok: true });
   }
 
-  if (req.method === 'POST' && req.url === '/api/ask') {
+  if (req.method === 'POST' && (req.url === '/api/ask' || req.url === '/api/propose')) {
     const username = await authenticate(req);
     if (!username) return sendJson(res, 401, { error: 'log in with Gitea to use the assistant' });
 
@@ -133,7 +236,7 @@ const server = createServer(async (req, res) => {
       return sendJson(res, 429, { error: 'too many requests — try again shortly' });
     }
 
-    return handleAsk(req, res, username);
+    return req.url === '/api/ask' ? handleAsk(req, res, username) : handlePropose(req, res, username);
   }
 
   return sendJson(res, 404, { error: 'not found' });

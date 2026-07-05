@@ -268,13 +268,19 @@ the live production Compose stack / Caddy config.
   - Status: fully verified (unit test + real-HTTP test: 10 allowed, rest 429). Only the
     live-deployment path is unverified, same as the rest of this epic.
 
-## EPIC-12 — AI write actions (propose via Gitea PR)
+## EPIC-12 — AI write actions (propose via Gitea PR) [~] code done, live deploy pending (2026-07-05)
 
 The "control everything" core (D11/D12): turn a natural-language instruction into an
 auditable pull request. Built on the EPIC-9 backend; the model chooses bounded actions,
 the backend validates + applies them and opens the PR.
 
-- [ ] **TASK-120 — Action toolset definition**
+**Status:** all deterministic logic (toolset, applier, validation gate, PR-request
+construction) written and thoroughly tested locally — every action type and error case,
+multi-action-batch id-collision safety, and Gitea request shapes checked against the real
+API's own swagger spec (`old_ref_name`, POST-creates/PUT-updates for Contents). Not yet
+exercised as a real live PR — same blocker as EPIC-9 (live deploy + a Gemini key).
+
+- [x] **TASK-120 — Action toolset definition**
   - Define the fixed set of tools the model may call (PRD §14.4): `set_status`,
     `set_field`, `add_tag`/`remove_tag`, `set_description`/`append_note`,
     `add_subtask`/`toggle_subtask`, `link`, `create_story`, `split_story`. Each maps 1:1 to
@@ -282,7 +288,9 @@ the backend validates + applies them and opens the PR.
   - AC: the toolset is expressed as a function-calling schema Gemini can target, and every
     tool corresponds to a documented, bounded file change.
   - deps: TASK-092 (shares the backend + Gemini client)
-- [ ] **TASK-121 — Deterministic mutation applier**
+  - Status: done — assistant/lib/actions.mjs's ACTION_TOOLS (11 tools) + gemini.mjs's
+    proposeActions(); Gemini function-call response parsing verified via fixture.
+- [x] **TASK-121 — Deterministic mutation applier**
   - Given one action + the story's current file content, produce the new content via
     fetch-merge-write: overlay only the named fields, preserve everything else
     byte-for-byte. This is the MVP1.5 data-loss lesson encoded as a rule
@@ -290,14 +298,21 @@ the backend validates + applies them and opens the PR.
   - AC: applying an action changes only what it names; a round-trip of a no-op action is
     byte-identical to the original file.
   - deps: TASK-120
-- [ ] **TASK-122 — Pre-PR validation gate**
+  - Status: done — all 79 stories round-trip byte-identical unchanged; all 11 action
+    types verified individually. Caught a real bug: Acceptance Criteria must stay
+    verbatim (never parsed/rebuilt), same class of issue as TASK-071 — fixed to match
+    21-write.js's already-proven design.
+- [x] **TASK-122 — Pre-PR validation gate**
   - Before opening any PR, run the same schema + referential-integrity checks
     `validate-stories.mjs` runs over the proposed tree; refuse (clear message, no PR) on an
     invalid enum, malformed frontmatter, or a dangling `depends_on`/`blocks`/`related`/`epic`.
   - AC: an instruction that would create an invalid or dangling story is rejected with a
     reason and opens no PR.
   - deps: TASK-121
-- [ ] **TASK-123 — Branch + PR creation via Gitea API**
+  - Status: done — refactored validate-stories.mjs's inline logic into
+    scripts/lib/validate.mjs (CLI output confirmed byte-identical after refactor);
+    assistant/lib/validate-tree.mjs reuses it. Verified valid + invalid cases.
+- [~] **TASK-123 — Branch + PR creation via Gitea API**
   - Create a branch, PUT each changed file to it (Contents API — same endpoints
     `21-write.js` uses), and open a PR whose body records the verbatim instruction + a
     bulleted change summary. Authored with the logged-in user's token (D13); no new scope
@@ -306,11 +321,16 @@ the backend validates + applies them and opens the PR.
     `main` is untouched until it's merged; merging fires the existing hook and updates the
     board.
   - deps: TASK-122
-- [ ] **TASK-124 — Guardrail + audit review**
+  - Status: code written (assistant/lib/gitea-pr.mjs), request shapes verified against
+    the real API's swagger spec + a mocked fetch. Not yet run against the real repo —
+    the natural first live test once TASK-090 is deployed.
+- [x] **TASK-124 — Guardrail + audit review**
   - Confirm the backend has no path that writes to `main`; confirm the PR body's audit
     trail; note the prompt-injection posture (bounded actions + human merge — PRD §14.6).
   - AC: a code path audit shows the only route to `main` is a human merge.
   - deps: TASK-123
+  - Status: done — audited every HTTP write in assistant/; all target the new branch,
+    never main; no merge-API call exists anywhere in the codebase.
 
 ## EPIC-10 — Chat UI in the board
 
