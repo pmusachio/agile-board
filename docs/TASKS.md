@@ -221,18 +221,26 @@ needs all of them.
   - AC: an artificially oversized fixture triggers the truncation path predictably.
   - deps: TASK-080
 
-## EPIC-9 — Assistant backend service (+ the ask path) [~] code done, live deploy pending (2026-07-05)
+## EPIC-9 — Assistant backend service (+ the ask path) [~] deployed live 2026-07-05, one real check pending
 
 The shared backend for both capabilities: the service, the auth gate, the Gemini client,
 and the read-only *ask* endpoint. The *act* endpoint is built on top of this in EPIC-12.
 
-**Status:** all code written and locally verified (`assistant/`, `scripts/lib/context.mjs`).
-Live deployment to the OCI VM is a separate, explicit-approval step — see
-[docs/RUNBOOK.md §11](./RUNBOOK.md#11-deploy-the-mvp2-assistant-backend-gemini--write-actions).
-Blocked on two things only Paulo can provide: a Gemini API key, and the go-ahead to modify
-the live production Compose stack / Caddy config.
+**Status:** deployed to the live OCI VM with explicit approval (see
+[docs/RUNBOOK.md §11](./RUNBOOK.md#11-deploy-the-mvp2-assistant-backend-gemini--write-actions)).
+`https://agile-board.duckdns.org/api/health` and `/api/ask` both work through the real
+Caddy → assistant-api path; auth rejection confirmed against the real Gitea instance.
+`infra/.env` on the VM has a placeholder `GEMINI_API_KEY` Paulo will swap for his real one
+himself. Two real deployment bugs were caught and fixed: (1) the Dockerfile path assumed
+the deployed directory is named `infra/` like the repo — it's `agile-board-infra/` on this
+VM (pre-existing naming from initial provisioning); (2) a classic Docker single-file
+bind-mount gotcha — `tar` extraction replaces a file via a new inode, so `caddy reload`
+reported "config is unchanged" even with the correct file on disk; fixed by
+force-recreating the Caddy container. A third bug, in `assistant/server.mjs` itself: the
+health route was registered as bare `/health`, but the Caddy `/api/*` block uses `handle`
+(not `handle_path`), so the real incoming path is `/api/health` — fixed.
 
-- [~] **TASK-090 — Minimal API service scaffold**
+- [x] **TASK-090 — Minimal API service scaffold**
   - Small Node.js HTTP service (matches existing `scripts/*.mjs` tooling — no new
     language, per D10), endpoints `POST /api/ask` (this epic) and `POST /api/propose`
     (EPIC-12); new Docker Compose service alongside `gitea`/`caddy`, mounting the
@@ -240,31 +248,34 @@ the live production Compose stack / Caddy config.
     the existing `/git/*` block.
   - AC: a request through Caddy reaches the service end-to-end.
   - deps: — (infra already exists, EPIC-3)
-  - Status: code + infra-as-code complete, verified locally end-to-end over real HTTP;
-    live Caddy path not yet deployed (RUNBOOK §11).
+  - Status: done, live — `/api/health` returns 200 through the real Caddy route.
 - [~] **TASK-091 — Gitea-token auth guard**
   - Verify the caller's bearer token against Gitea's `/api/v1/user` (same call
     `21-write.js`'s `fetchUsername()` already makes client-side) before doing anything
     else; reject missing/invalid tokens. No new auth system.
   - AC: no/bad token → rejected; a real logged-in user's token → accepted.
   - deps: TASK-090
-  - Status: rejection path verified against the real live Gitea (a real but
-    wrongly-scoped token correctly 401s); acceptance path verified against a stubbed
-    response — a real read:user-scoped token hasn't been exercised yet.
+  - Status: rejection path verified live (missing token, and a real but wrongly-scoped
+    token, both 401 through the deployed service). Acceptance path only verified against
+    a stub — no read:user-scoped token available to test the live positive case; left for
+    Paulo to confirm via the browser once logged in.
 - [~] **TASK-092 — Gemini call**
   - Wire the assembled context (EPIC-8) + the user's question into a Gemini API call
     using a server-side-only API key (env var, never committed — same discipline as the
     Gitea admin/mirror secrets, §8); return the answer.
   - AC: a real question against the live corpus returns a real, relevant answer.
   - deps: TASK-091, TASK-080
-  - Status: client + wiring written (assistant/lib/gemini.mjs); correctly returns 503
-    "not configured" without a key (verified). Needs a real GEMINI_API_KEY + live deploy.
-- [~] **TASK-093 — Basic abuse guard**
+  - Status: deployed with a placeholder key; the pipeline up to the model call is
+    confirmed correct live. Waiting on Paulo to swap in his real Gemini key and try a
+    real question through the browser.
+- [x] **TASK-093 — Basic abuse guard**
   - Simple per-user rate limit (e.g. N requests/minute) — cheap now that every request
     carries a real identity (TASK-091).
   - AC: rapid-fire requests from one account are throttled with a clear error, not
     silently billed forever.
   - deps: TASK-092
+  - Status: done — fully verified (unit test + real HTTP, 10 allowed/rest 429) and now
+    deployed live; the mechanism doesn't depend on the Gemini key at all.
   - Status: fully verified (unit test + real-HTTP test: 10 allowed, rest 429). Only the
     live-deployment path is unverified, same as the rest of this epic.
 

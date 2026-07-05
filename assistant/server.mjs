@@ -3,7 +3,7 @@
 // npm dependencies, matching this project's convention (see scripts/*.mjs).
 //
 // Endpoints:
-//   GET  /health      - liveness check, no auth
+//   GET  /api/health  - liveness check, no auth
 //   POST /api/ask     - question in, Gemini answer out (TASK-092)
 //   POST /api/propose - instruction in, a Gitea PR out (EPIC-012). Never
 //                        writes to main directly — see TASK-124.
@@ -222,7 +222,7 @@ async function handlePropose(req, res, username) {
 }
 
 const server = createServer(async (req, res) => {
-  if (req.method === 'GET' && req.url === '/health') {
+  if (req.method === 'GET' && req.url === '/api/health') {
     return sendJson(res, 200, { ok: true });
   }
 

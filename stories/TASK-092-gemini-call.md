@@ -33,9 +33,13 @@ POST /api/ask in assistant/server.mjs: auth → rate-limit → load corpus+graph
 503 "assistant not configured" (verified over real HTTP) instead of a generic crash — proves
 the whole pipeline up to the actual model call is correct.
 
-**Two things this task is genuinely blocked on, both requiring Paulo:**
-1. A Gemini API key (Google AI Studio) — a new external cloud-account credential, not
-   something to generate/assume.
-2. The live deployment of the assistant-api service itself (see TASK-090) — paused for
-   explicit go-ahead per the project's OCI-boundary rule.
-Once both exist, this task is "set GEMINI_API_KEY in infra/.env and ask a real question."
+**Update 2026-07-05:** the live deployment (blocker #2) is done — see TASK-090. Paulo
+generated a real Gemini key but deliberately didn't paste it anywhere I'd see it; instead
+`/home/ubuntu/agile-board-infra/.env` now has a clearly-labeled placeholder
+(`GEMINI_API_KEY=REPLACE_ME_WITH_REAL_GEMINI_API_KEY`) for him to swap personally. Confirmed
+live that the pipeline up to the model call is correct: `/api/health` returns 200, and
+`/api/ask` correctly rejects missing/wrongly-scoped tokens through the real deployed service
+(same as TASK-091). The only remaining step is Paulo replacing the placeholder with his real
+key (`ssh` in, edit `/home/ubuntu/agile-board-infra/.env`, `docker compose up -d assistant-api`
+to pick it up) and asking a real question — through the browser once logged in, since I don't
+have a read:user-scoped token to test the success path myself.

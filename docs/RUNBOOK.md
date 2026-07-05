@@ -280,23 +280,20 @@ either way.
 
 ## 11. Deploy the MVP2 assistant backend (Gemini + write actions)
 
-Code is written and locally verified (`assistant/server.mjs`, `assistant/lib/*.mjs`,
-`scripts/lib/context.mjs`) — this section is the remaining live-deployment steps, held back
-for your explicit go-ahead since it changes shared production infra (new container, new
-Caddy route). Nothing below is destructive to the existing Gitea/Caddy setup: the new
-service has no host port (only reachable via Caddy) and the new Caddy block is additive.
+**Deployed live 2026-07-05** with Paulo's explicit go-ahead. `https://agile-board.duckdns.org/api/health`
+and `/api/ask` both work through the real Caddy → assistant-api path. What's below is the
+real sequence that worked, including three real bugs hit and fixed along the way — kept
+accurate for reproducibility, same convention as the rest of this runbook.
 
 ### 11.1 Get a Gemini API key (D7)
 
 1. Go to [Google AI Studio](https://ai.google.dev/) and create an API key (a Google account,
    separate from everything else this project uses — this is the one external cloud-account
    credential MVP2 needs).
-2. Do **not** paste the key into chat/commands where it could be echoed. Add it directly to
-   `infra/.env` on the VM (create it from `infra/.env.example` if it doesn't exist yet):
-   ```
-   GEMINI_API_KEY=<your key>
-   ```
-   `infra/.env` is gitignored — never commit it.
+2. Do **not** paste the key into chat/commands where it could be echoed. Paulo's approach:
+   ask for a placeholder to be written to `infra/.env` on the VM, then swap it in himself
+   over his own SSH session — nobody but him ever sees the real value. `infra/.env` is
+   gitignored — never commit it.
 
 ### 11.2 Get the new code onto the VM
 
@@ -313,11 +310,23 @@ ssh ubuntu@<vm-ip>
   tar xzf /tmp/assistant-deploy.tar.gz -C /home/ubuntu scripts assistant
   tar xzf /tmp/assistant-deploy.tar.gz -C /home/ubuntu/agile-board-infra --strip-components=1 infra
   rm /tmp/assistant-deploy.tar.gz
+  # clean up macOS metadata cruft if you tar'd from a Mac:
+  find /home/ubuntu/scripts /home/ubuntu/assistant /home/ubuntu/agile-board-infra \
+    -name '.DS_Store' -o -name '._*' | xargs -r rm
 ```
 
 (A future improvement worth considering once this is stable: publish this code from the
 same Gitea repo the board already lives in, so a push updates it the same way `stories/`
 updates the board — today it's a manual step, same as the original `infra/` deploy was.)
+
+**Gotcha hit here:** the deployed directory on this VM is named `agile-board-infra/`, not
+`infra/` like the repo — a naming choice from initial provisioning. `docker-compose.yml`'s
+`dockerfile: infra/assistant.Dockerfile` (correct for the repo's own layout) needs a
+one-line, VM-specific fix:
+```
+sed -i 's|dockerfile: infra/assistant.Dockerfile|dockerfile: agile-board-infra/assistant.Dockerfile|' \
+  /home/ubuntu/agile-board-infra/docker-compose.yml
+```
 
 ### 11.3 Build and start the new service
 
@@ -325,7 +334,22 @@ From `/home/ubuntu/agile-board-infra/` on the VM:
 ```
 docker compose build assistant-api
 docker compose up -d assistant-api
-docker compose up -d caddy   # picks up the new /api/* block in Caddyfile
+```
+
+**Gotcha hit here:** picking up a changed `Caddyfile` is *not* as simple as
+`docker compose up -d caddy` or even `docker exec caddy caddy reload`. `tar` (and most
+editors) replace a file via a new inode rather than editing in place — a Docker
+single-file bind mount stays attached to the *old* inode, so Caddy's own `reload` reads
+stale content and reports `"config is unchanged"` even though the file on disk is correct.
+Force-recreating the container re-attaches the mount to the current file:
+```
+docker compose up -d --force-recreate caddy
+```
+Confirm the fix actually took by diffing the file on the host against the one Caddy
+actually sees:
+```
+diff <(cat /home/ubuntu/agile-board-infra/Caddyfile) \
+     <(docker exec agile-board-infra-caddy-1 cat /etc/caddy/Caddyfile)
 ```
 
 ### 11.4 Verify
@@ -341,10 +365,17 @@ curl -s -X POST https://<your-domain>/api/ask \
 # {"answer": "...", "askedBy": "..."}
 ```
 
-Without `GEMINI_API_KEY` set, the second call correctly returns
-`503 {"error":"assistant not configured (missing GEMINI_API_KEY)"}` instead of a crash —
-that's expected until 11.1 is done. Without a valid token, both auth-guarded calls return
-`401`. More than 10 requests/minute from one account returns `429` (basic abuse guard).
+Without `GEMINI_API_KEY` set (or with the placeholder still in place), the second call
+correctly returns `503 {"error":"assistant not configured (missing GEMINI_API_KEY)"}`
+instead of a crash. Without a valid token, both auth-guarded calls return `401` — verified
+live both for a missing token and for a real-but-wrongly-scoped one (Gitea itself rejects
+it for lacking `read:user`, translated to `401` by this service). More than 10
+requests/minute from one account returns `429` (basic abuse guard).
+
+**Once your real key is in `infra/.env`:** `docker compose up -d assistant-api` picks it up
+(env vars, unlike bind-mounted file content, ARE part of Compose's own change detection —
+no force-recreate needed for this one). Then try a real question through the board's chat
+panel while logged in with your own Gitea account.
 
 ## Verifying the whole loop
 
