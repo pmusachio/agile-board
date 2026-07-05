@@ -156,24 +156,30 @@ EPIC-2 (viewer) and EPIC-3 (infra) can proceed in parallel once EPIC-1's schema 
 
 ---
 
-# TASKS — MVP2 (Ask & relate)
+# TASKS — MVP2 (AI control layer: understand + act)
 
-Engineering breakdown for MVP2, derived from [PRD.md §14](./PRD.md#14-mvp2--ask--relate-ai-over-the-knowledge-graph).
-Same conventions as MVP1 above. Seeded as `todo` stories under `stories/` (EPIC-007..011)
+Engineering breakdown for MVP2, derived from [PRD.md §14](./PRD.md#14-mvp2--ai-control-layer-understand-and-act-on-the-board).
+Same conventions as MVP1 above. Seeded as `todo` stories under `stories/` (EPIC-007..012)
 so this backlog is visible on the live board itself, dogfooding-style, same as MVP1 was.
+
+The AI has two capabilities: **understand** (ask a question, get a graph-grounded answer)
+and **act** (give an instruction, get a Gitea PR that a human reviews and merges — D11).
+The graph (EPIC-007), context assembly (EPIC-008), and backend + auth (EPIC-009) are shared
+foundations; the *ask* path finishes in EPIC-009, the *act* path is EPIC-012.
 
 ---
 
 ## Milestone sequence
 
 ```
-EPIC-7 graph builder ─► EPIC-8 context assembly ─► EPIC-9 assistant backend ─┐
-                                                                              ├─► EPIC-11 launch
-                                                          EPIC-10 chat UI ───┘
+EPIC-7 graph ─► EPIC-8 context ─► EPIC-9 backend + ask ─┬─► EPIC-12 act (propose via PR) ─┐
+                                                        └────────────► EPIC-10 chat UI ────┴─► EPIC-11 launch
 ```
 
-EPIC-9 (backend) needs EPIC-8 (context) to have something to send the model; EPIC-10
-(chat UI) needs EPIC-9 (backend) to have something to call.
+EPIC-9 (backend) needs EPIC-8 (context) to have something to send the model; EPIC-12 (act)
+adds the write path on top of the same backend; EPIC-10 (chat UI) needs both EPIC-9 (ask)
+and EPIC-12 (act) so it can render an answer *or* a "PR opened" result; EPIC-11 (launch)
+needs all of them.
 
 ## EPIC-7 — Knowledge graph builder
 
@@ -215,12 +221,17 @@ EPIC-9 (backend) needs EPIC-8 (context) to have something to send the model; EPI
   - AC: an artificially oversized fixture triggers the truncation path predictably.
   - deps: TASK-080
 
-## EPIC-9 — Assistant backend service
+## EPIC-9 — Assistant backend service (+ the ask path)
+
+The shared backend for both capabilities: the service, the auth gate, the Gemini client,
+and the read-only *ask* endpoint. The *act* endpoint is built on top of this in EPIC-12.
 
 - [ ] **TASK-090 — Minimal API service scaffold**
   - Small Node.js HTTP service (matches existing `scripts/*.mjs` tooling — no new
-    language, per D10), one endpoint (`POST /api/ask`); new Docker Compose service
-    alongside `gitea`/`caddy`; new Caddy route.
+    language, per D10), endpoints `POST /api/ask` (this epic) and `POST /api/propose`
+    (EPIC-12); new Docker Compose service alongside `gitea`/`caddy`, mounting the
+    `board-site` volume read-only to read the corpus; new Caddy `/api/*` route mirroring
+    the existing `/git/*` block.
   - AC: a request through Caddy reaches the service end-to-end.
   - deps: — (infra already exists, EPIC-3)
 - [ ] **TASK-091 — Gitea-token auth guard**
@@ -242,6 +253,50 @@ EPIC-9 (backend) needs EPIC-8 (context) to have something to send the model; EPI
     silently billed forever.
   - deps: TASK-092
 
+## EPIC-12 — AI write actions (propose via Gitea PR)
+
+The "control everything" core (D11/D12): turn a natural-language instruction into an
+auditable pull request. Built on the EPIC-9 backend; the model chooses bounded actions,
+the backend validates + applies them and opens the PR.
+
+- [ ] **TASK-120 — Action toolset definition**
+  - Define the fixed set of tools the model may call (PRD §14.4): `set_status`,
+    `set_field`, `add_tag`/`remove_tag`, `set_description`/`append_note`,
+    `add_subtask`/`toggle_subtask`, `link`, `create_story`, `split_story`. Each maps 1:1 to
+    a schema-safe mutation. The model chooses actions; it never emits file bytes.
+  - AC: the toolset is expressed as a function-calling schema Gemini can target, and every
+    tool corresponds to a documented, bounded file change.
+  - deps: TASK-092 (shares the backend + Gemini client)
+- [ ] **TASK-121 — Deterministic mutation applier**
+  - Given one action + the story's current file content, produce the new content via
+    fetch-merge-write: overlay only the named fields, preserve everything else
+    byte-for-byte. This is the MVP1.5 data-loss lesson encoded as a rule
+    (`board/scripts/21-write.js`'s `saveTask` is the reference for the fetch-merge shape).
+  - AC: applying an action changes only what it names; a round-trip of a no-op action is
+    byte-identical to the original file.
+  - deps: TASK-120
+- [ ] **TASK-122 — Pre-PR validation gate**
+  - Before opening any PR, run the same schema + referential-integrity checks
+    `validate-stories.mjs` runs over the proposed tree; refuse (clear message, no PR) on an
+    invalid enum, malformed frontmatter, or a dangling `depends_on`/`blocks`/`related`/`epic`.
+  - AC: an instruction that would create an invalid or dangling story is rejected with a
+    reason and opens no PR.
+  - deps: TASK-121
+- [ ] **TASK-123 — Branch + PR creation via Gitea API**
+  - Create a branch, PUT each changed file to it (Contents API — same endpoints
+    `21-write.js` uses), and open a PR whose body records the verbatim instruction + a
+    bulleted change summary. Authored with the logged-in user's token (D13); no new scope
+    (`write:repository` already covers branches, contents, PRs).
+  - AC: a valid instruction yields a real Gitea PR containing exactly the intended changes;
+    `main` is untouched until it's merged; merging fires the existing hook and updates the
+    board.
+  - deps: TASK-122
+- [ ] **TASK-124 — Guardrail + audit review**
+  - Confirm the backend has no path that writes to `main`; confirm the PR body's audit
+    trail; note the prompt-injection posture (bounded actions + human merge — PRD §14.6).
+  - AC: a code path audit shows the only route to `main` is a human merge.
+  - deps: TASK-123
+
 ## EPIC-10 — Chat UI in the board
 
 - [ ] **TASK-100 — Chat panel (logged-in only)**
@@ -252,9 +307,18 @@ EPIC-9 (backend) needs EPIC-8 (context) to have something to send the model; EPI
   - AC: logged in, a typed question returns a rendered answer; logged out, no chat
     affordance renders at all.
   - deps: TASK-092
+- [ ] **TASK-102 — Act result: proposed-change summary + PR link**
+  - When the instruction was an *act* (not a question), render the plain-language change
+    summary and a link to the opened PR (matching the interaction the user approved:
+    "Done — opened PR #14: …"); render the validation-refusal message when the backend
+    declined to open one.
+  - AC: an act instruction shows the change summary + a working PR link; a refused
+    instruction shows the reason and no PR link.
+  - deps: TASK-100, TASK-123
 - [ ] **TASK-101 — Loading/error states**
-  - Pending indicator while waiting on the model; clear error on failure/throttling,
-    reusing the existing `showNotification()` convention from write-mode.
+  - Pending indicator while waiting on the model (answers can take a few seconds; opening
+    a PR longer); clear error on failure/throttling, reusing the existing
+    `showNotification()` convention from write-mode.
   - AC: a slow or failed request always shows a clear state, never a silently stuck UI.
   - deps: TASK-100
 
@@ -266,14 +330,19 @@ EPIC-9 (backend) needs EPIC-8 (context) to have something to send the model; EPI
   - AC: someone could stand up the backend from the runbook alone.
   - deps: TASK-090
 - [ ] **TASK-111 — README + PRD sync**
-  - Update README's architecture/roadmap to describe the shipped MVP2 feature, mirroring
-    how D6/write-mode was folded back in after MVP1.5 shipped.
-  - deps: TASK-100, TASK-092
+  - Update README's architecture/roadmap to describe the shipped MVP2 feature — both
+    *ask* and *act* (propose via PR) — mirroring how D6/write-mode was folded back in
+    after MVP1.5 shipped.
+  - deps: TASK-100, TASK-102, TASK-092
 - [ ] **TASK-112 — End-to-end verification**
-  - A logged-in user asks a real question spanning multiple related stories and gets a
-    correct, graph-grounded answer; a logged-out visitor sees no AI affordance.
-  - AC: PRD §14.5 Definition of Done fully checked.
-  - deps: EPIC-7, EPIC-8, EPIC-9, EPIC-10
+  - *Ask:* a logged-in user asks a real question spanning multiple related stories and
+    gets a correct, graph-grounded answer. *Act:* an instruction like "mark TASK-092 done
+    and split TASK-100 into a UI and an API story" opens a single Gitea PR with exactly
+    those changes; `main` is unchanged until merge; merging updates the live board via the
+    existing hook. An invalid instruction is refused with no PR. A logged-out visitor sees
+    no AI affordance.
+  - AC: PRD §14.7 Definition of Done fully checked.
+  - deps: EPIC-7, EPIC-8, EPIC-9, EPIC-12, EPIC-10
 
 ---
 

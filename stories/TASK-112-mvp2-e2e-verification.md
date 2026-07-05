@@ -18,10 +18,10 @@ related: []
 ---
 
 ## Description
-A logged-in user asks a real question spanning multiple related stories and gets a correct, graph-grounded answer; a logged-out visitor sees no AI affordance.
+Ask: a logged-in user asks a real question spanning multiple related stories and gets a correct, graph-grounded answer. Act: an instruction like "mark TASK-092 done and split TASK-100 into a UI and an API story" opens a single Gitea PR with exactly those changes, leaves main unchanged until merge, and updates the live board via the existing hook once merged; an invalid instruction is refused with no PR. A logged-out visitor sees no AI affordance.
 
 ## Acceptance Criteria
-- [ ] PRD #14.5 Definition of Done fully checked
+- [ ] PRD #14.7 Definition of Done fully checked
 
 ## Subtasks
 

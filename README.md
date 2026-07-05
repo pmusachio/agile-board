@@ -143,13 +143,18 @@ fill in the frontmatter, commit, push. Full guide:
 - **MVP1 (this repo).** A usable, shareable board backed by git: read-only
   for anyone with the link, real editing (login, drag-and-drop, edit modal)
   for anyone with a Gitea account — self-service, no approval needed.
-- **MVP2 — Ask & relate.** Build a knowledge graph from the frontmatter edges
-  (`depends_on`/`blocks`/`related`/`epic`) and `[[wiki-links]]`, plus retrieval
-  over story bodies. An assistant answers "what's the team working on?" and
-  "what depends on X?" — Karpathy "wiki-LLM" style.
+- **MVP2 — AI control layer.** Build a knowledge graph from the frontmatter
+  edges (`depends_on`/`blocks`/`related`/`epic`) and `[[wiki-links]]`, then put
+  a Gemini-backed assistant on top that both **answers** questions grounded in
+  the graph ("what's the team working on?", "what depends on X?" — Karpathy
+  "wiki-LLM" style) *and* **acts** on plain-language instructions ("mark X done,
+  split Y into two stories") by drafting the changes as a Gitea pull request you
+  review and merge. The AI controls the board; you approve every change it makes.
+  Planned in detail in [docs/PRD.md §14](docs/PRD.md).
 - **MVP3 — Auto-ingest.** Ingest transcripts of dailies/plannings, extract
-  status changes and new dependencies, and propose them as a Gitea branch/PR
-  for human approval.
+  status changes and new dependencies, and feed them into that same MVP2
+  propose-via-PR pipeline for human approval — the transcript becomes the
+  on-ramp to a write path that already exists.
 
 Full detail and current status: [docs/PRD.md](docs/PRD.md) ·
 [docs/TASKS.md](docs/TASKS.md).

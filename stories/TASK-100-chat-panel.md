@@ -13,7 +13,7 @@ finished: null
 tags: ["#ai", "#viewer"]
 estimate: null
 depends_on: ["TASK-092-gemini-call"]
-blocks: ["TASK-101-loading-error-states"]
+blocks: ["TASK-101-loading-error-states", "TASK-102-act-result-ui"]
 related: []
 ---
 
