@@ -151,7 +151,14 @@ fill in the frontmatter, commit, push. Full guide:
   split Y into two stories") by drafting the changes as a Gitea pull request you
   review and merge. The AI controls the board; you approve every change it makes.
   Planned in detail in [docs/PRD.md §14](docs/PRD.md).
-- **MVP3 — Auto-ingest.** Ingest transcripts of dailies/plannings, extract
+- **MVP3 — Knowledge & study view.** A second, *managerial* face for the same
+  Markdown, for non-technical teammates: a wiki-style browsing surface (search,
+  article pages, backlinks, graph view) served at `/wiki/` next to the board —
+  a fork of [wiki-os](https://github.com/Ansub/wiki-os) reading the same Gitea
+  corpus, human cards *and* the explanatory pages the MVP2 AI writes. The board
+  is the *doing* face; the wiki is the *understanding* face, over one dataset.
+  Planned in [docs/PRD.md §15](docs/PRD.md).
+- **MVP4 — Auto-ingest.** Ingest transcripts of dailies/plannings, extract
   status changes and new dependencies, and feed them into that same MVP2
   propose-via-PR pipeline for human approval — the transcript becomes the
   on-ramp to a write path that already exists.

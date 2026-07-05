@@ -346,7 +346,97 @@ the backend validates + applies them and opens the PR.
 
 ---
 
+# TASKS — MVP3 (Knowledge & study view)
+
+Engineering breakdown for MVP3, derived from [PRD.md §15](./PRD.md#15-mvp3--knowledge--study-view-a-managerial-face-for-non-technical-teams).
+A second, read-only *managerial* face over the same Markdown: a forked, self-hosted wiki-os
+(D14) at `/wiki/`, plus the MVP2 AI populating it with explanatory pages (D15). Seeded as
+`todo` stories under `stories/` (EPIC-013..015), same dogfooding convention as MVP1/MVP2.
+
+---
+
+## Milestone sequence
+
+```
+EPIC-13 wiki-os fork + deploy ─► EPIC-15 nav integration + launch
+EPIC-14 AI explanatory pages ──┘   (14 depends on MVP2's act path; enriches the wiki)
+```
+
+EPIC-13 stands the wiki view up over the existing corpus (no AI needed — it just reads the
+Markdown that's already there). EPIC-14 needs MVP2's act path (EPIC-012) to exist, since the
+AI authors explanation pages through the same PR pipeline. EPIC-15 ties board ↔ wiki together
+and verifies the whole thing.
+
+## EPIC-13 — Fork & deploy wiki-os
+
+- [ ] **TASK-130 — Fork wiki-os + record the license**
+  - Fork [wiki-os](https://github.com/Ansub/wiki-os) (MIT) so the deployed version is pinned
+    and patchable (D14); add its MIT license + attribution to `NOTICE`, consistent with the
+    MarkdownTaskManager fork.
+  - AC: a pinned fork exists; `NOTICE` records it.
+  - deps: —
+- [ ] **TASK-131 — Compose service + WIKI_ROOT wiring**
+  - Add the wiki-os fork as a Docker Compose service alongside `gitea`/`caddy`, with
+    `WIKI_ROOT` pointing at the shared `board-site` volume (`/srv/board`) it reads read-only —
+    the same directory the publish hook already checks the corpus out into.
+  - AC: the service starts and indexes the live corpus; a story file shows up as a wiki page.
+  - deps: TASK-130, TASK-033 (existing compose stack)
+- [ ] **TASK-132 — Caddy `/wiki/` route**
+  - Add a `handle_path /wiki/*` block reverse-proxying the wiki service, mirroring the
+    existing `/git/*` block.
+  - AC: `https://<domain>/wiki/` serves the wiki over HTTPS.
+  - deps: TASK-131
+- [ ] **TASK-133 — Verify links + graph + refresh**
+  - Confirm `[[wiki-links]]` render as navigable links with backlinks, the graph view reflects
+    the real edges, and a merge/push refreshes the wiki with no manual step.
+  - AC: PRD §15.5 link/graph/refresh criteria pass on the live corpus.
+  - deps: TASK-132
+- [ ] **TASK-134 — Resource-fit check on the VM**
+  - Measure memory before/after on the 1GB Always-Free VM (Gitea + Caddy + assistant-api +
+    wiki); if it doesn't fit, document/apply the lighter-mode fallback (pre-built assets /
+    static export) per the PRD risk row.
+  - AC: the box runs all services stably, or the fallback is in place and documented.
+  - deps: TASK-131
+
+## EPIC-14 — AI explanatory / overview pages
+
+- [ ] **TASK-140 — Explanation-page action + folder convention**
+  - Extend the MVP2 action toolset (EPIC-012) so the AI can author durable macro→micro
+    explanation / overview / map-of-content pages as Markdown with `[[wiki-links]]`, via the
+    same propose-via-PR path. Settle where they live (e.g. a `wiki/` or `notes/` folder) so
+    explanatory prose isn't parsed as a board card.
+  - AC: the AI can propose an explanation page; merged, it's a normal Markdown file in the
+    chosen folder, not a story card.
+  - deps: TASK-123 (MVP2 branch/PR creation), TASK-070 (graph)
+- [ ] **TASK-141 — Surface AI pages in the wiki**
+  - Ensure the explanation-page folder is within `WIKI_ROOT` so merged AI pages appear in the
+    wiki as first-class pages, cross-linked to the stories they explain.
+  - AC: a merged AI explanation page shows up in the wiki and links to its referenced stories.
+  - deps: TASK-140, TASK-131
+
+## EPIC-15 — Navigation integration + MVP3 launch
+
+- [ ] **TASK-150 — Board ↔ wiki link**
+  - A one-click link in the board header to `/wiki/` (and ideally a link back), so the two
+    faces feel like one product. Additive board change, no vendored file touched.
+  - AC: a user moves between board and wiki in one click.
+  - deps: TASK-132
+- [ ] **TASK-151 — RUNBOOK + README + NOTICE**
+  - Document standing up the wiki service from scratch (Compose service, WIKI_ROOT, Caddy
+    route, resource note); fold the shipped MVP3 into README's architecture/roadmap.
+  - AC: someone could stand up the wiki from the runbook alone; README reflects reality.
+  - deps: TASK-132
+- [ ] **TASK-152 — MVP3 end-to-end verification**
+  - Browse macro→micro over the live corpus; confirm a merge (board/git/AI PR) reflects in the
+    wiki; confirm an AI explanation page appears; confirm board↔wiki navigation.
+  - AC: PRD §15.5 Definition of Done fully checked.
+  - deps: EPIC-13, EPIC-14, TASK-150
+
+---
+
 ## Roadmap tasks (tracked, not scheduled yet)
 
-- **MVP3 — Auto-ingest:** transcript → extractor → proposed Gitea branch/PR →
-  human approval → merge → board updates.
+- **MVP4 — Auto-ingest:** transcript → extractor → proposed Gitea branch/PR →
+  human approval → merge → board updates. (Formerly MVP3; bumped when the knowledge/study
+  view took the MVP3 slot. Narrows to the transcript → instructions front-end, since MVP2
+  already built the PR write path.)

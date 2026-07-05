@@ -254,10 +254,19 @@ Adaptations for MVP1:
   instructions by drafting the changes as a **Gitea pull request** a human reviews and merges
   (D11). Adds a chat panel gated behind the same Gitea login as write-mode. Planned in detail
   in §14 (not yet built — see its Definition of Done for current status).
-- **MVP3 — Auto-ingest rituals.** Pipeline ingests transcripts of dailies/plannings,
+- **MVP3 — Knowledge & study view.** A second, *managerial* face for the same data, aimed at
+  non-technical teammates: a wiki-style browsing surface (homepage, search, article pages,
+  graph view, backlinks) served alongside the board, reading the exact same Gitea Markdown —
+  the human cards *and* the durable explanatory/overview pages the MVP2 AI writes. Built by
+  forking and self-hosting [wiki-os](https://github.com/Ansub/wiki-os) (MIT) at `/wiki/` on
+  the same VM (D14), with the AI populating it with macro→micro explanations via the MVP2
+  propose-via-PR path (D15). Planned in detail in §15. (Inspiration for the AI's
+  graph-building/explanatory role: [AutoSci](https://github.com/skyllwt/AutoSci) — a
+  reference for the "compounding memory" pattern, not a dependency.)
+- **MVP4 — Auto-ingest rituals.** Pipeline ingests transcripts of dailies/plannings,
   extracts status changes / new tasks / decisions / dependencies, and feeds them into the
   **same MVP2 propose-via-PR pipeline** for human approval before merge. Because MVP2 already
-  builds the branch/PR write path (D11), MVP3 narrows to just the transcript → instructions
+  builds the branch/PR write path (D11), MVP4 narrows to just the transcript → instructions
   front-end — the on-ramp to a road that already exists.
 
 ## 12. Risks & mitigations
@@ -277,6 +286,8 @@ Adaptations for MVP1:
 | *(MVP2)* Prompt injection via story content (a body could contain text aimed at the assistant) | The AI can only emit bounded, schema-validated actions (D12), and every action becomes a human-reviewed PR before merge (D11) — worst case is a nonsense PR that gets closed, not a silent or destructive write. |
 | *(MVP2)* AI authors an invalid/destructive file | Structurally prevented: the model never writes file bytes; the backend applies bounded actions via fetch-merge-write and runs the same schema + referential-integrity checks as `validate-stories.mjs` *before* opening any PR — an invalid action is refused, not committed. |
 | *(MVP2)* Gemini availability/quota/terms change | Context-assembly and the action toolset keep the model call as one swappable piece (D9/D12); not deeply coupled to one provider's API shape. |
+| *(MVP3)* wiki-os is early-stage (v0.1.0) — bugs, breaking changes, or abandonment | Fork it (D14) so the deployed version is pinned and patchable; and it's only a read-only view over Markdown git already owns, so worst case is losing a presentation surface, never data. Low lock-in by design. |
+| *(MVP3)* Extra always-on service strains the 1GB Always-Free VM (Gitea + Caddy + assistant-api + wiki-os) | Measure memory before/after; prefer wiki-os's lightest run mode (pre-built assets, minimal watcher); the swapfile absorbs spikes; if it doesn't fit, fall back to a leaner static export of the wiki or a bigger host (same fallbacks as the ARM-capacity row). |
 
 ## 13. Decisions log
 
@@ -295,6 +306,8 @@ Adaptations for MVP1:
 | D11 | MVP2 AI control model | **Propose via Gitea branch/PR.** The AI can act on the board (move cards, edit fields, create/split stories) but every action lands as a pull request a human reviews and merges — never a silent write to `main`. Reframes MVP2 from read-only Q&A to a git-native *control layer*, and pulls the PR-review mechanism (originally MVP3's) forward as the shared write path | 2026-07-04 |
 | D12 | How the AI mutates the board | **Bounded tool/function-calling.** The model chooses from a fixed set of schema-aligned actions; the backend applies them deterministically and validates (schema + referential integrity) before opening the PR. The model never writes raw file bytes — every change is schema-valid by construction and reviewable as a small diff | 2026-07-04 |
 | D13 | AI PR attribution | The **logged-in user's own Gitea token** authors the AI's branch/PR (accountable to whoever asked; reuses MVP1.5's existing `write:repository` scope — no new permission); the human still merges. A dedicated `agile-board-ai` bot account is noted as a future option if "who proposed this" needs to be distinct from "who asked" | 2026-07-04 |
+| D14 | MVP3 knowledge/study view | **Fork & self-host [wiki-os](https://github.com/Ansub/wiki-os)** (MIT) at `/wiki/` on the same VM, reading the same Gitea Markdown corpus — rather than building a wiki from scratch or depending on the fast-moving upstream. A fork (not upstream-as-is) insulates against its early-stage churn (v0.1.0); low lock-in regardless, since it's read-only presentation over Markdown the project already owns (git stays the source of truth). Its own MVP (MVP3) *after* the AI control layer, not merged into it | 2026-07-04 |
+| D15 | AI-authored explanatory pages | The MVP2 AI additionally writes **durable macro→micro explanation / overview pages** (how cards relate, how an epic evolved, a bug drilled to its detail) as Markdown, via the same propose-via-PR path (D11) — "compounding memory" in the spirit of [AutoSci](https://github.com/skyllwt/AutoSci) (a *reference* for the pattern, never a dependency; it's a research-paper agent, wrong domain to adopt). These pages are what make the MVP3 wiki view worth navigating | 2026-07-04 |
 
 **Why D6:** after using the live MVP1 board for real, read-only-plus-git proved too
 limited day-to-day — no drag-and-drop, no way to add information to a card without a
@@ -310,6 +323,16 @@ the same kind of reviewable pull request a human collaborator would — so "the 
 the board" and "I approved every change the AI made" are simultaneously true. The bounded
 toolset (D12) is what keeps those PRs trustworthy enough to review quickly instead of
 auditing line by line. See §14.
+
+**Why D14–D15:** the board and the wiki are two faces of one dataset — a *doing* face
+(kanban) and a *understanding* face (browsable knowledge), over the identical Markdown. That
+only works cheaply because the data was git-native from day one: a presentation layer is
+something you bolt on (and could later swap) without touching the source of truth. Keeping it
+a separate MVP *after* the AI means the wiki opens onto a knowledge base the AI has already
+started enriching (D15), instead of an empty shell. AutoSci and wiki-os are used the way this
+project has used every dependency — take the idea or the read-only presentation, keep the
+data and the source of truth ours. See §15. (This bumped the old "MVP3 — auto-ingest" to
+MVP4; nothing about it changed except the number.)
 
 **Still open:** final product name.
 
@@ -550,3 +573,117 @@ the act path is designed so an AI writer can't undermine that.
       edge and every `[[wiki-link]]` found in a story body, across the full corpus.
 - [ ] `docs/RUNBOOK.md` documents standing up the assistant backend (Gemini key, the new
       Compose service + Caddy route) from scratch.
+
+---
+
+## 15. MVP3 — Knowledge & study view (a managerial face for non-technical teams)
+
+**Status:** Planned, not yet built. Same PRD-before-build convention as §14. See docs/TASKS.md
+for the breakdown and `stories/EPIC-013..015-*.md` for the seeded (todo) backlog.
+
+The kanban board is a *doing* surface — great for "what's in progress", less so for "help me,
+a non-technical stakeholder, understand how this whole thing fits together." MVP3 adds a
+second face over the **same Markdown**: a wiki-style, browsable **knowledge base** — homepage,
+full-text search, article pages, backlinks, and a graph view — so someone can wander from a
+macro epic overview down to a specific documented bug and back, following relationships
+instead of scanning columns. The board and the wiki are two windows onto one git-native
+dataset, not two datasets.
+
+### 15.1 Problem
+
+Non-technical teammates (the exact people this project set out to include, §1) don't think in
+kanban columns; they think "what is this initiative, why does it matter, what does it depend
+on, how did it get here." That information already exists — spread across story bodies and the
+`depends_on`/`blocks`/`related`/`epic` + `[[wiki-link]]` edges — but the board surfaces it one
+card at a time. There is no way to *read the work as a connected body of knowledge*, macro to
+micro. And once the MVP2 AI starts writing explanatory/overview pages (D15), there's even more
+worth browsing that the kanban view has no natural home for.
+
+### 15.2 Goals & Non-Goals (MVP3)
+
+**Goals**
+- K1 — A **wiki view** at `https://<domain>/wiki/`: homepage, search, article (per-story)
+  pages, backlinks, and a graph view — reading the same Markdown the board reads.
+- K2 — It reflects **one source of truth**: the live Gitea corpus (`/srv/board`), human cards
+  *and* AI-authored explanation pages alike; a merge/push updates both board and wiki.
+- K3 — `[[wiki-links]]` (already in the stories, and the MVP2 graph, §14.5) render as real
+  navigable links + backlinks — the payoff of a data model that's carried wiki-links since D3.
+- K4 — Reachable from the board with **one click** (a header link to `/wiki/`), so the two
+  faces feel like one product.
+- K5 — Still free-infra, still git-native: a **fork** of wiki-os (D14), self-hosted next to
+  Gitea/Caddy; no new paid service, no second source of truth.
+- K6 — The MVP2 AI **populates it** with durable macro→micro explanation / overview pages
+  (D15), so the wiki opens onto a real knowledge base, not an empty index.
+
+**Non-Goals (explicitly out of scope for MVP3)**
+- Editing from the wiki. It is **read-only presentation**; all writes still go through the
+  board's git/PR paths (D6/D11). Two faces, one write path.
+- A second copy of the data or a database of record. wiki-os may keep its own *index* (e.g.
+  SQLite) for search, but that's a derived cache rebuilt from the Markdown, never authoritative.
+- Adopting AutoSci as a component. It's referenced (D15) as inspiration for the AI's
+  explanatory-page role; its research-paper machinery is not imported.
+- Auth on the wiki beyond what the board already has. Same public-read posture as the board
+  (optionally the same Caddy basic-auth); no separate login.
+
+### 15.3 Architecture (MVP3)
+
+```mermaid
+flowchart LR
+  subgraph oci[OCI Always Free VM]
+    G[(Gitea - git server)]
+    H[post-receive hook<br/>checkout + manifest + graph.json]
+    S[/srv/board static files<br/>= the Markdown corpus/]
+    C[Caddy - reverse proxy]
+    Wiki[wiki-os fork<br/>WIKI_ROOT=/srv/board]
+    G --> H --> S
+    C --- S
+    C --- G
+    C --- Wiki
+    Wiki -. reads Markdown RO from .-> S
+  end
+
+  subgraph viewer[Any browser]
+    B[board at /board/]
+    W[wiki at /wiki/]
+  end
+
+  B -->|header link| W
+  C -->|/board/ static| B
+  C -->|/wiki/| W
+```
+
+**Flow:** unchanged publish pipeline — a merge/push checks the tree out to `/srv/board`. The
+forked wiki-os runs as one more Docker Compose service with `WIKI_ROOT=/srv/board` (the same
+directory Caddy already serves the board from), builds its search index from that Markdown,
+and Caddy exposes it under `/wiki/` exactly as it exposes Gitea under `/git/`. No new data
+store of record, no second copy of the content — the wiki is a *lens*, the git repo stays the
+truth. The board header gets one link to `/wiki/`; that's the whole integration surface
+(matching the "linked sibling app, not an in-page tab" reality of a separate React/Fastify
+app).
+
+### 15.4 What the AI contributes (link to MVP2, D15)
+
+MVP2's act path (§14.4) already lets the AI author Markdown via PR. MVP3 gives that a purpose
+beyond editing cards: the AI writes **explanatory / overview pages** — an epic's narrative and
+how its stories evolved, a map-of-content linking a cluster of related work, a plain-language
+"what is this and why" for a stakeholder — as ordinary Markdown with `[[wiki-links]]`, landing
+as a reviewed PR, then showing up in the wiki like any other page. "Compounding memory" in the
+AutoSci sense (D15): the knowledge base gets richer over time, and every addition was
+human-approved. (These may live under a `wiki/` or `notes/` folder distinct from `stories/`,
+so explanatory prose doesn't get mistaken for a board card — a detail to settle in EPIC-014.)
+
+### 15.5 Definition of Done (MVP3)
+
+- [ ] `https://<domain>/wiki/` serves a browsable wiki over the live corpus: homepage, search,
+      per-story article pages, and a graph view all work.
+- [ ] `[[wiki-links]]` resolve to real navigable links with backlinks; the graph view reflects
+      the actual `depends_on`/`blocks`/`related`/`epic` + body wiki-link edges.
+- [ ] A merge to `main` (from the board, git, or an AI PR) is reflected in the wiki without a
+      manual step — same source of truth as the board.
+- [ ] The board links to the wiki (and ideally back), so the two feel like one product.
+- [ ] An AI-authored explanation page (D15), once its PR is merged, appears in the wiki as a
+      first-class page.
+- [ ] The deployment fits the VM's resources (measured), or the fallback (lighter/static mode)
+      is documented; `docs/RUNBOOK.md` covers standing the wiki service up from scratch.
+- [ ] The wiki-os fork's MIT license + attribution is recorded in `NOTICE`, consistent with
+      how the MarkdownTaskManager fork is handled.
