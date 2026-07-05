@@ -48,6 +48,25 @@ services:
     depends_on: [gitea]
     networks: [board]
 
+  # MVP2 assistant backend (docs/PRD.md #14.3). No npm dependencies (Node
+  # built-ins only); reads the story corpus read-only from the same
+  # board-site volume Caddy serves — never a second copy of the data.
+  # No host port mapping: only reachable through Caddy's /api/* route.
+  assistant-api:
+    build:
+      context: ..
+      dockerfile: infra/assistant.Dockerfile
+    restart: unless-stopped
+    environment:
+      - GITEA_BASE_URL=http://gitea:3000/
+      - STORIES_DIR=/srv/board/stories
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-}
+    volumes:
+      - board-site:/srv/board:ro
+    depends_on: [gitea]
+    networks: [board]
+
 volumes:
   # A named volume (not a host bind mount) so it's created with consistent
   # ownership regardless of host OS — see docs/RUNBOOK.md for the one-time

@@ -278,6 +278,74 @@ it too. This should be indistinguishable from a manual git push: it's the
 same commit → `post-receive` hook → `stories/index.json` rebuild pipeline
 either way.
 
+## 11. Deploy the MVP2 assistant backend (Gemini + write actions)
+
+Code is written and locally verified (`assistant/server.mjs`, `assistant/lib/*.mjs`,
+`scripts/lib/context.mjs`) — this section is the remaining live-deployment steps, held back
+for your explicit go-ahead since it changes shared production infra (new container, new
+Caddy route). Nothing below is destructive to the existing Gitea/Caddy setup: the new
+service has no host port (only reachable via Caddy) and the new Caddy block is additive.
+
+### 11.1 Get a Gemini API key (D7)
+
+1. Go to [Google AI Studio](https://ai.google.dev/) and create an API key (a Google account,
+   separate from everything else this project uses — this is the one external cloud-account
+   credential MVP2 needs).
+2. Do **not** paste the key into chat/commands where it could be echoed. Add it directly to
+   `infra/.env` on the VM (create it from `infra/.env.example` if it doesn't exist yet):
+   ```
+   GEMINI_API_KEY=<your key>
+   ```
+   `infra/.env` is gitignored — never commit it.
+
+### 11.2 Get the new code onto the VM
+
+The deployed `agile-board-infra/` directory on the VM mirrors this repo's `infra/` only
+(not the whole repo) — `scripts/lib/` and `assistant/` need to land alongside it, as
+siblings, matching this repo's own root layout (`assistant.Dockerfile`'s build context is
+`..` relative to `docker-compose.yml`, i.e. one level up from `agile-board-infra/`):
+
+```
+# from your local clone:
+tar czf /tmp/assistant-deploy.tar.gz scripts/lib assistant infra/docker-compose.yml infra/Caddyfile infra/assistant.Dockerfile
+scp /tmp/assistant-deploy.tar.gz ubuntu@<vm-ip>:/tmp/
+ssh ubuntu@<vm-ip>
+  tar xzf /tmp/assistant-deploy.tar.gz -C /home/ubuntu scripts assistant
+  tar xzf /tmp/assistant-deploy.tar.gz -C /home/ubuntu/agile-board-infra --strip-components=1 infra
+  rm /tmp/assistant-deploy.tar.gz
+```
+
+(A future improvement worth considering once this is stable: publish this code from the
+same Gitea repo the board already lives in, so a push updates it the same way `stories/`
+updates the board — today it's a manual step, same as the original `infra/` deploy was.)
+
+### 11.3 Build and start the new service
+
+From `/home/ubuntu/agile-board-infra/` on the VM:
+```
+docker compose build assistant-api
+docker compose up -d assistant-api
+docker compose up -d caddy   # picks up the new /api/* block in Caddyfile
+```
+
+### 11.4 Verify
+
+```
+curl -s https://<your-domain>/api/health
+# {"ok":true}
+
+curl -s -X POST https://<your-domain>/api/ask \
+  -H "Authorization: token <a real Gitea token with read:user scope>" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"what blocks TASK-092?"}'
+# {"answer": "...", "askedBy": "..."}
+```
+
+Without `GEMINI_API_KEY` set, the second call correctly returns
+`503 {"error":"assistant not configured (missing GEMINI_API_KEY)"}` instead of a crash —
+that's expected until 11.1 is done. Without a valid token, both auth-guarded calls return
+`401`. More than 10 requests/minute from one account returns `429` (basic abuse guard).
+
 ## Verifying the whole loop
 
 1. Open `https://<your-domain>/board/` in a browser you haven't used for this

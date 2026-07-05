@@ -1,13 +1,13 @@
 ---
 id: TASK-092-gemini-call
 title: Gemini call
-status: todo
+status: in-progress
 priority: high
 category: backend
 assignees: ["@paulo"]
 epic: EPIC-009-assistant-backend
 created: 2026-07-04
-started: null
+started: 2026-07-05
 due: null
 finished: null
 tags: ["#ai", "#backend"]
@@ -26,3 +26,16 @@ Wire the assembled context (EPIC-008) plus the user's question into a Gemini API
 ## Subtasks
 
 ## Notes
+Client code written: assistant/lib/gemini.mjs's askGemini() (single fetch to the Generative
+Language API, no SDK — matches the zero-npm-deps convention). Wired into
+POST /api/ask in assistant/server.mjs: auth → rate-limit → load corpus+graph → assembleContext
+→ askGemini → return {answer}. With no GEMINI_API_KEY set, correctly returns
+503 "assistant not configured" (verified over real HTTP) instead of a generic crash — proves
+the whole pipeline up to the actual model call is correct.
+
+**Two things this task is genuinely blocked on, both requiring Paulo:**
+1. A Gemini API key (Google AI Studio) — a new external cloud-account credential, not
+   something to generate/assume.
+2. The live deployment of the assistant-api service itself (see TASK-090) — paused for
+   explicit go-ahead per the project's OCI-boundary rule.
+Once both exist, this task is "set GEMINI_API_KEY in infra/.env and ask a real question."

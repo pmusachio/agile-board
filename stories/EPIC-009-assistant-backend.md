@@ -1,13 +1,13 @@
 ---
 id: EPIC-009-assistant-backend
 title: Assistant backend service
-status: todo
+status: in-progress
 priority: high
 category: backend
 assignees: ["@paulo"]
 epic: null
 created: 2026-07-04
-started: null
+started: 2026-07-05
 due: null
 finished: null
 tags: ["#ai", "#backend"]

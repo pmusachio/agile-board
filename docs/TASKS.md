@@ -221,12 +221,18 @@ needs all of them.
   - AC: an artificially oversized fixture triggers the truncation path predictably.
   - deps: TASK-080
 
-## EPIC-9 — Assistant backend service (+ the ask path)
+## EPIC-9 — Assistant backend service (+ the ask path) [~] code done, live deploy pending (2026-07-05)
 
 The shared backend for both capabilities: the service, the auth gate, the Gemini client,
 and the read-only *ask* endpoint. The *act* endpoint is built on top of this in EPIC-12.
 
-- [ ] **TASK-090 — Minimal API service scaffold**
+**Status:** all code written and locally verified (`assistant/`, `scripts/lib/context.mjs`).
+Live deployment to the OCI VM is a separate, explicit-approval step — see
+[docs/RUNBOOK.md §11](./RUNBOOK.md#11-deploy-the-mvp2-assistant-backend-gemini--write-actions).
+Blocked on two things only Paulo can provide: a Gemini API key, and the go-ahead to modify
+the live production Compose stack / Caddy config.
+
+- [~] **TASK-090 — Minimal API service scaffold**
   - Small Node.js HTTP service (matches existing `scripts/*.mjs` tooling — no new
     language, per D10), endpoints `POST /api/ask` (this epic) and `POST /api/propose`
     (EPIC-12); new Docker Compose service alongside `gitea`/`caddy`, mounting the
@@ -234,24 +240,33 @@ and the read-only *ask* endpoint. The *act* endpoint is built on top of this in 
     the existing `/git/*` block.
   - AC: a request through Caddy reaches the service end-to-end.
   - deps: — (infra already exists, EPIC-3)
-- [ ] **TASK-091 — Gitea-token auth guard**
+  - Status: code + infra-as-code complete, verified locally end-to-end over real HTTP;
+    live Caddy path not yet deployed (RUNBOOK §11).
+- [~] **TASK-091 — Gitea-token auth guard**
   - Verify the caller's bearer token against Gitea's `/api/v1/user` (same call
     `21-write.js`'s `fetchUsername()` already makes client-side) before doing anything
     else; reject missing/invalid tokens. No new auth system.
   - AC: no/bad token → rejected; a real logged-in user's token → accepted.
   - deps: TASK-090
-- [ ] **TASK-092 — Gemini call**
+  - Status: rejection path verified against the real live Gitea (a real but
+    wrongly-scoped token correctly 401s); acceptance path verified against a stubbed
+    response — a real read:user-scoped token hasn't been exercised yet.
+- [~] **TASK-092 — Gemini call**
   - Wire the assembled context (EPIC-8) + the user's question into a Gemini API call
     using a server-side-only API key (env var, never committed — same discipline as the
     Gitea admin/mirror secrets, §8); return the answer.
   - AC: a real question against the live corpus returns a real, relevant answer.
   - deps: TASK-091, TASK-080
-- [ ] **TASK-093 — Basic abuse guard**
+  - Status: client + wiring written (assistant/lib/gemini.mjs); correctly returns 503
+    "not configured" without a key (verified). Needs a real GEMINI_API_KEY + live deploy.
+- [~] **TASK-093 — Basic abuse guard**
   - Simple per-user rate limit (e.g. N requests/minute) — cheap now that every request
     carries a real identity (TASK-091).
   - AC: rapid-fire requests from one account are throttled with a clear error, not
     silently billed forever.
   - deps: TASK-092
+  - Status: fully verified (unit test + real-HTTP test: 10 allowed, rest 429). Only the
+    live-deployment path is unverified, same as the rest of this epic.
 
 ## EPIC-12 — AI write actions (propose via Gitea PR)
 

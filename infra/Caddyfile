@@ -4,6 +4,15 @@
 		reverse_proxy gitea:3000
 	}
 
+	# MVP2 assistant backend (docs/PRD.md #14.3) — /api/ask, /api/propose.
+	# Unlike /git/* above, this uses `handle` (not `handle_path`): the
+	# assistant's own routes are literally /api/ask etc (assistant/server.mjs),
+	# so the /api prefix must reach it unstripped. Not reachable any other
+	# way: no host port mapping on assistant-api.
+	handle /api/* {
+		reverse_proxy assistant-api:3100
+	}
+
 	# The published board (and repo files in general) — static, read-only.
 	# Public board link: https://{$DOMAIN}/board/
 	handle {
