@@ -68,3 +68,13 @@ Original work by Paulo Musachio, part of agile-board. Licensed under MIT
 (see ../LICENSE). Adds OAuth2+PKCE login with Gitea and a real write-back
 path (drag-and-drop, the edit-task modal) via Gitea's Contents API, on top
 of the read-only mode in board/scripts/20-remote.js.
+
+board/scripts/22-assistant.js
+--------------------------------------------------------------------
+Original work by Paulo Musachio, part of agile-board. Licensed under MIT
+(see ../LICENSE). MVP2 (docs/PRD.md #14): a chat panel calling the
+assistant-api backend (assistant/, also MIT/original) to answer questions
+(POST /api/ask) or propose board changes as a Gitea pull request
+(POST /api/propose). Visible only when logged in (window.__agileBoardWriteMode,
+the same flag 21-write.js sets); reads the same stored Gitea token from
+localStorage rather than importing 21-write.js's private functions.

@@ -332,9 +332,9 @@ exercised as a real live PR — same blocker as EPIC-9 (live deploy + a Gemini k
   - Status: done — audited every HTTP write in assistant/; all target the new branch,
     never main; no merge-API call exists anywhere in the codebase.
 
-## EPIC-10 — Chat UI in the board
+## EPIC-10 — Chat UI in the board ✅ done (2026-07-05, verified in browser preview against a stubbed backend)
 
-- [ ] **TASK-100 — Chat panel (logged-in only)**
+- [x] **TASK-100 — Chat panel (logged-in only)**
   - New additive script `board/scripts/22-assistant.js` (next number after
     `21-write.js`, same non-invasive layering — no vendored file touched). Panel/button
     gated on `window.__agileBoardWriteMode` (the same flag write-mode already sets);
@@ -342,7 +342,9 @@ exercised as a real live PR — same blocker as EPIC-9 (live deploy + a Gemini k
   - AC: logged in, a typed question returns a rendered answer; logged out, no chat
     affordance renders at all.
   - deps: TASK-092
-- [ ] **TASK-102 — Act result: proposed-change summary + PR link**
+  - Status: done. Fixed a real bug found via preview testing: the visibility poll only
+    ran 5s after page load, which could miss a slow OAuth callback; now polls indefinitely.
+- [x] **TASK-102 — Act result: proposed-change summary + PR link**
   - When the instruction was an *act* (not a question), render the plain-language change
     summary and a link to the opened PR (matching the interaction the user approved:
     "Done — opened PR #14: …"); render the validation-refusal message when the backend
@@ -350,12 +352,17 @@ exercised as a real live PR — same blocker as EPIC-9 (live deploy + a Gemini k
   - AC: an act instruction shows the change summary + a working PR link; a refused
     instruction shows the reason and no PR link.
   - deps: TASK-100, TASK-123
-- [ ] **TASK-101 — Loading/error states**
+  - Status: done, verified with stubbed success + 422 responses.
+- [x] **TASK-101 — Loading/error states**
   - Pending indicator while waiting on the model (answers can take a few seconds; opening
     a PR longer); clear error on failure/throttling, reusing the existing
     `showNotification()` convention from write-mode.
   - AC: a slow or failed request always shows a clear state, never a silently stuck UI.
   - deps: TASK-100
+  - Status: done, with a deliberate deviation — errors render inline in the panel's own
+    result area rather than the global showNotification() toast, since a transient toast
+    risks disappearing before a multi-line answer/error is read. All of 401/429/422/503/
+    500/network-failure verified to show a distinct message.
 
 ## EPIC-11 — MVP2 docs & launch
 
