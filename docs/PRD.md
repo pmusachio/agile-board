@@ -5,8 +5,9 @@
 > self-hosted Gitea instance. Built to be copied: minimal moving parts, no vendor lock-in,
 > and a data model ready for AI on top.
 
-**Status:** Live (MVP1, extended — see D6) · MVP2 planned, not yet built — see §14 ·
-**Owner:** Paulo Musachio · **Last updated:** 2026-07-04
+**Status:** Live (MVP1, extended — see D6) · MVP2 in progress: graph/context/chat-UI done,
+assistant backend deployed live, final Gemini-key step pending — see §14 ·
+**Owner:** Paulo Musachio · **Last updated:** 2026-07-05
 **Working title:** `agile-board` (final product name TBD)
 
 > This document was written before the build started and is kept as the
@@ -340,9 +341,16 @@ MVP4; nothing about it changed except the number.)
 
 ## 14. MVP2 — AI control layer (understand *and* act on the board)
 
-**Status:** Planned, not yet built. This section is the PRD for MVP2, written the same
-way MVP1's was: before the build starts, decisions dated not rewritten. See docs/TASKS.md
-for the task breakdown and `stories/EPIC-007..012-*.md` for the seeded (todo) backlog.
+**Status (2026-07-05):** In progress. EPIC-007 (knowledge graph), EPIC-008 (context
+assembly), and EPIC-010 (chat UI) are done and verified. EPIC-009 (assistant backend) and
+EPIC-012 (AI write actions) are code-complete, tested, and **deployed live** at
+`https://agile-board.duckdns.org/api/` — `/api/health` and auth rejection are confirmed
+against the real Gitea instance. The one remaining step is Paulo's: swap the placeholder
+`GEMINI_API_KEY` in the VM's `infra/.env` for his real one and confirm a real question/
+instruction through the browser (see §14.7's Definition of Done for exactly what's
+checked vs. still open). This section is the PRD for MVP2, written the same way MVP1's
+was: before the build started, decisions dated not rewritten. See docs/TASKS.md for the
+task breakdown and `stories/EPIC-007..012-*.md` for current story status.
 
 MVP2 is the point the whole project was built toward: MVP1 made the data AI-ready, MVP2
 puts an AI in charge of it. The assistant both **understands** the board (answers questions
@@ -552,27 +560,38 @@ the act path is designed so an AI writer can't undermine that.
 
 *Understand (ask):*
 - [ ] A logged-in user asks a question spanning multiple related stories (e.g. "what blocks
-      TASK-092?") and gets a correct, graph-grounded answer.
+      TASK-092?") and gets a correct, graph-grounded answer. **Deployed and reachable
+      live** (`/api/ask` responds correctly through auth); the actual Gemini round-trip
+      needs Paulo's real API key, still a placeholder as of 2026-07-05.
 
 *Act (propose):*
 - [ ] An instruction like "mark TASK-092 done and split TASK-100 into a UI story and an API
       story" produces a **single Gitea PR** containing exactly those changes, schema-valid;
       **`main` is unchanged** until the PR is merged; merging it updates the live board via
-      the existing post-receive hook with no manual git step.
+      the existing post-receive hook with no manual git step. Logic verified thoroughly
+      (every action type + Gitea request shape); not yet exercised as a real PR — needs
+      the real Gemini key.
 - [ ] An impossible/invalid instruction (status outside the enum, a dependency on a
       nonexistent story) is **refused with a clear message and no PR opened**, never a
-      malformed commit.
+      malformed commit. The validation gate itself is verified (valid/invalid cases); the
+      full live path (a real model choosing a bad action) needs the real key too.
 - [ ] The PR body records the original natural-language instruction (the audit trail).
+      Verified in code (mocked PR creation); not yet a real PR.
 
 *Both / platform:*
-- [ ] A logged-out visitor sees no AI affordance at all — same info-hiding pattern
-      write-mode already uses for drag/edit controls.
-- [ ] The Gemini API key is never present in any response or file the browser can fetch.
-- [ ] A basic per-user rate limit exists and demonstrably triggers under rapid repeated use.
-- [ ] `stories/graph.json` correctly reflects every `depends_on`/`blocks`/`related`/`epic`
+- [x] A logged-out visitor sees no AI affordance at all — same info-hiding pattern
+      write-mode already uses for drag/edit controls. **Verified** in a browser preview.
+- [x] The Gemini API key is never present in any response or file the browser can fetch.
+      **Verified** by design/audit: `assistant/lib/gemini.mjs`'s error handling deliberately
+      excludes the request URL (which carries the key as a query param); nothing logs it.
+- [x] A basic per-user rate limit exists and demonstrably triggers under rapid repeated use.
+      **Verified** (unit test + real HTTP: 10 allowed, rest 429) and deployed live.
+- [x] `stories/graph.json` correctly reflects every `depends_on`/`blocks`/`related`/`epic`
       edge and every `[[wiki-link]]` found in a story body, across the full corpus.
-- [ ] `docs/RUNBOOK.md` documents standing up the assistant backend (Gemini key, the new
-      Compose service + Caddy route) from scratch.
+      **Verified** live against the real 79-story corpus.
+- [x] `docs/RUNBOOK.md` documents standing up the assistant backend (Gemini key, the new
+      Compose service + Caddy route) from scratch. **Verified** — §11 documents the actual
+      sequence used, including the 3 real gotchas hit along the way.
 
 ---
 

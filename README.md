@@ -5,10 +5,11 @@ git repository; a single-page viewer renders them as a Kanban board served from 
 self-hosted git server. No Asana/Jira license, no vendor database — the data is
 just text you can diff, grep, and eventually hand to an LLM.
 
-This is MVP1 of a three-stage plan: get a usable, shareable board out first
-(this repo), then layer AI on top of it (see [Roadmap](#roadmap)). Full
-reasoning and every design decision are in [docs/PRD.md](docs/PRD.md); this
-README is the short version.
+This started as MVP1: get a usable, shareable board out first. MVP2 — an AI
+that both answers questions and proposes changes as pull requests — is now
+in progress on top of it (see [Roadmap](#roadmap)). Full reasoning and every
+design decision are in [docs/PRD.md](docs/PRD.md); this README is the short
+version.
 
 **Live demo:** https://agile-board.duckdns.org/board/ — a personal Always-Free
 OCI instance, so treat it as a demo, not an SLA.
@@ -54,16 +55,22 @@ flowchart LR
 
   subgraph oci[OCI Always Free VM]
     G[(Gitea - git server)]
-    H[post-receive hook<br/>checkout + build manifest]
+    H[post-receive hook<br/>checkout + build manifest + graph]
     S[/srv/board static files/]
     C[Caddy - auto TLS reverse proxy]
+    A[assistant-api<br/>MVP2, no host port]
     G --> H --> S
     C --- S
     C --- G
+    C --- A
   end
 
   subgraph gh[GitHub]
     M[(Mirror repo - portfolio + history)]
+  end
+
+  subgraph ext[External]
+    Gem[(Gemini API)]
   end
 
   subgraph viewer[Any browser]
@@ -75,15 +82,23 @@ flowchart LR
   V -->|GET index.json + story .md| C
   C -->|serve| V
   V -.->|logged in: drag / edit -> Contents API write, a real commit| G
+  V -.->|logged in: ask / propose| C
+  A -->|verify token| G
+  A -->|context + question or instruction| Gem
+  A -.->|propose: branch + PR, never main directly| G
 ```
 
-A push to `main` (from git, *or* from a logged-in browser edit — both are
-real commits) triggers a Gitea hook that checks the tree out onto the server
-and rebuilds `stories/index.json` (a lightweight manifest); Caddy serves that
-directory as static files; the viewer fetches the manifest, then lazy-loads a
-story's full Markdown only when its card is clicked. Nothing here needs a
-backend beyond "a static file server" — the browser talks straight to Gitea's
-own API for writes.
+A push to `main` (from git, a logged-in browser edit, or a merged AI proposal
+— all real commits) triggers a Gitea hook that checks the tree out onto the
+server and rebuilds `stories/index.json` and `stories/graph.json`; Caddy
+serves that directory as static files; the viewer fetches the manifest, then
+lazy-loads a story's full Markdown only when its card is clicked. Viewing and
+editing need no backend beyond "a static file server" — the browser talks
+straight to Gitea's own API for writes. MVP2 adds the project's first real
+backend (`assistant-api`): it verifies the caller's Gitea token, calls Gemini
+with a server-side-only key, and — for a proposed change — opens a branch and
+PR through Gitea's API. It never writes to `main` directly; a human merge is
+still the only way a proposal reaches the board.
 
 ## Using the board
 
@@ -94,6 +109,12 @@ Gitea's own sign-up page is one click away and needs no approval. There's
 nothing to install and nothing to run locally — this is a hosted, web-only
 tool by design (see [NOTICE](NOTICE) for what upstream's original local-only
 mode looked like and why it was removed).
+
+Logged in, a **🤖 Assistant** button also appears: ask a question grounded in
+the board's own data, or describe a change and get a Gitea pull request back
+instead of editing fields by hand (see [Roadmap](#roadmap) — MVP2). The
+backend is live; wiring in the model API key is the last step before this is
+fully working end-to-end.
 
 ## Data model
 
@@ -124,9 +145,10 @@ real stories under [`stories/`](stories/) — the repo's history *is* the board.
 ## Self-hosting
 
 Full walkthrough (OCI VM → firewall → DNS → Docker Compose → Gitea → publish
-hook → GitHub mirror → OAuth2 app for browser login): [docs/RUNBOOK.md](docs/RUNBOOK.md).
-Infra-as-code lives in [`infra/`](infra/) (Gitea + Caddy via Docker Compose,
-auto-HTTPS, the publish hook). Once deployed, the board is reachable at
+hook → GitHub mirror → OAuth2 app for browser login → MVP2 assistant backend):
+[docs/RUNBOOK.md](docs/RUNBOOK.md). Infra-as-code lives in [`infra/`](infra/)
+(Gitea + Caddy + the `assistant-api` service via Docker Compose, auto-HTTPS,
+the publish hook). Once deployed, the board is reachable at
 `https://<your-domain>/board/`.
 
 ## Adding or updating a story
@@ -143,14 +165,16 @@ fill in the frontmatter, commit, push. Full guide:
 - **MVP1 (this repo).** A usable, shareable board backed by git: read-only
   for anyone with the link, real editing (login, drag-and-drop, edit modal)
   for anyone with a Gitea account — self-service, no approval needed.
-- **MVP2 — AI control layer.** Build a knowledge graph from the frontmatter
-  edges (`depends_on`/`blocks`/`related`/`epic`) and `[[wiki-links]]`, then put
-  a Gemini-backed assistant on top that both **answers** questions grounded in
+- **MVP2 — AI control layer (in progress).** A knowledge graph built from the
+  frontmatter edges (`depends_on`/`blocks`/`related`/`epic`) and `[[wiki-links]]`,
+  plus a Gemini-backed assistant that both **answers** questions grounded in
   the graph ("what's the team working on?", "what depends on X?" — Karpathy
   "wiki-LLM" style) *and* **acts** on plain-language instructions ("mark X done,
   split Y into two stories") by drafting the changes as a Gitea pull request you
   review and merge. The AI controls the board; you approve every change it makes.
-  Planned in detail in [docs/PRD.md §14](docs/PRD.md).
+  The graph, context assembly, and chat UI are done; the backend is deployed
+  live at `/api/`, with the last step (a real Gemini key) still pending. Full
+  detail in [docs/PRD.md §14](docs/PRD.md).
 - **MVP3 — Knowledge & study view.** A second, *managerial* face for the same
   Markdown, for non-technical teammates: a wiki-style browsing surface (search,
   article pages, backlinks, graph view) served at `/wiki/` next to the board —
