@@ -15,8 +15,9 @@ how you add a story or edit those: clone, edit Markdown, commit, push.
    inline in [`stories/_TEMPLATE.md`](../stories/_TEMPLATE.md).
 3. Fill in the body: Description, Acceptance Criteria, Subtasks, Notes.
 4. Validate locally: `node scripts/validate-stories.mjs`
-5. Rebuild the manifest to preview the board locally (optional — the server does this
-   on push): `node scripts/build-manifest.mjs`
+5. Rebuild the manifest (and the knowledge graph, if you touched a relationship field) to
+   preview locally (optional — the server does this on push):
+   `node scripts/build-manifest.mjs && node scripts/build-graph.mjs`
 6. Commit and push:
    ```
    git add stories/TASK-123-my-story.md

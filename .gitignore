@@ -219,8 +219,10 @@ __marimo__/
 .DS_Store
 node_modules/
 
-# Generated board manifest (built by scripts/build-manifest.mjs, not source of truth)
+# Generated board manifest + knowledge graph (built by scripts/build-manifest.mjs
+# and scripts/build-graph.mjs, not source of truth)
 stories/index.json
+stories/graph.json
 
 # Local infra secrets / overrides
 infra/.env

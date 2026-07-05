@@ -181,9 +181,9 @@ adds the write path on top of the same backend; EPIC-10 (chat UI) needs both EPI
 and EPIC-12 (act) so it can render an answer *or* a "PR opened" result; EPIC-11 (launch)
 needs all of them.
 
-## EPIC-7 — Knowledge graph builder
+## EPIC-7 — Knowledge graph builder ✅ done (2026-07-05)
 
-- [ ] **TASK-070 — Graph schema & builder script**
+- [x] **TASK-070 — Graph schema & builder script**
   - Define `stories/graph.json`'s shape: one node per story (id/title/status/type) plus
     edges for `depends_on`/`blocks` (and their reverse: "blocked by"/"blocks" both
     queryable without an O(n) scan) and `epic` (reversed into per-epic child lists).
@@ -191,13 +191,13 @@ needs all of them.
   - AC: running it over the current `stories/` produces a valid graph with correct
     bidirectional edges for every relationship in the corpus.
   - deps: — (edges already exist in the schema, D3/G2)
-- [ ] **TASK-071 — Wiki-link body resolution**
+- [x] **TASK-071 — Wiki-link body resolution**
   - Parse `[[TASK-x]]`/`[[EPIC-x]]` references found **inside story bodies** (not just the
     frontmatter `related` array) into additional graph edges — the PRD always described
     wiki-links as graph edges (§6); MVP1 only ever parsed the frontmatter array.
   - AC: a `[[TASK-xxx]]` mention anywhere in a story's Markdown body shows up as an edge.
   - deps: TASK-070
-- [ ] **TASK-072 — Wire into the publish pipeline**
+- [x] **TASK-072 — Wire into the publish pipeline**
   - Extend the existing `post-receive` hook / `validate-stories.mjs` to (re)build
     `graph.json` on every push, same as `index.json` today.
   - AC: pushing a story with a new `depends_on` edge updates `graph.json` on the live

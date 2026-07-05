@@ -1,15 +1,15 @@
 ---
 id: EPIC-007-knowledge-graph-builder
 title: Knowledge graph builder
-status: todo
+status: done
 priority: high
 category: data
 assignees: ["@paulo"]
 epic: null
 created: 2026-07-04
-started: null
+started: 2026-07-05
 due: null
-finished: null
+finished: 2026-07-05
 tags: ["#ai", "#graph", "#data"]
 estimate: null
 depends_on: []
@@ -21,7 +21,7 @@ related: ["[[EPIC-001-data-pipeline]]", "[[EPIC-008-context-assembly]]"]
 Turn the relationship fields every story already carries (`depends_on`/`blocks`/`related`/`epic`) plus `[[wiki-links]]` inside story bodies into a real, generated graph (`stories/graph.json`) — the foundation the MVP2 assistant reasons over. See docs/PRD.md #14.4.
 
 ## Acceptance Criteria
-- [ ] TASK-070..072 complete
+- [x] TASK-070..072 complete
 
 ## Subtasks
 
