@@ -13,6 +13,16 @@
 		reverse_proxy assistant-api:3100
 	}
 
+	# EPIC-013: the wiki (Quartz static build, rebuilt by the post-receive
+	# hook alongside stories/index.json). Quartz emits clean URLs (no .html
+	# extension) -- try_files resolves them against the files actually on
+	# disk, same recipe Caddy's own docs give for any static site like this.
+	handle_path /wiki/* {
+		root * /srv/wiki
+		try_files {path} {path}.html {path}/index.html /404.html
+		file_server
+	}
+
 	# The published board (and repo files in general) — static, read-only.
 	# Public board link: https://{$DOMAIN}/board/
 	handle {

@@ -236,3 +236,10 @@ docs/PRD.md
 docs/TASKS.md
 docs/RUNBOOK.md
 docs/CONTRIBUTING.md
+
+# wiki/ (vendored Quartz, EPIC-013): generated per build, not source of truth.
+# Generated wiki page content itself lives outside the repo entirely (a
+# tmpdir) -- see scripts/build-wiki-content.mjs's header comment for why.
+wiki/public/
+wiki/**/.quartz-cache/
+wiki/tsconfig.tsbuildinfo

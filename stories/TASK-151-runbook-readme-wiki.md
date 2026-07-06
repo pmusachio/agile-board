@@ -18,7 +18,7 @@ related: ["[[TASK-130-fork-wiki-os]]"]
 ---
 
 ## Description
-Document standing up the wiki service from scratch (Compose service, WIKI_ROOT, Caddy route, the VM resource note); fold the shipped MVP3 into README's architecture/roadmap; confirm the wiki-os fork's MIT attribution is in NOTICE.
+Document standing up the wiki from scratch (npm ci + Quartz build step in the publish hook, the wiki-site volume, the Caddy route, the VM resource note); fold the shipped MVP3 into README's architecture/roadmap; confirm Quartz's MIT attribution is in NOTICE.
 
 ## Acceptance Criteria
 - [ ] someone could stand up the wiki from the runbook alone; README reflects reality; NOTICE is complete

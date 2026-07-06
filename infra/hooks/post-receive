@@ -18,4 +18,17 @@ while read -r old_sha new_sha ref_name; do
   git --git-dir="$REPO_DIR" --work-tree="$TARGET_DIR" checkout -f "$BRANCH"
   ( cd "$TARGET_DIR" && node scripts/build-manifest.mjs && node scripts/build-graph.mjs )
   echo "agile-board: published $new_sha to $TARGET_DIR"
+
+  # EPIC-013: rebuild the wiki (Quartz, static output to /srv/wiki). npm ci
+  # only on the very first run after a deploy -- node_modules survives
+  # `checkout -f` (gitignored, so git never touches it), and re-running a
+  # full clean install on every single push would make ordinary pushes
+  # noticeably slower for no reason once wiki/package-lock.json is settled.
+  if [ ! -d "$TARGET_DIR/wiki/node_modules" ]; then
+    ( cd "$TARGET_DIR/wiki" && npm ci --omit=dev )
+  fi
+  export WIKI_CONTENT_DIR=/tmp/agile-board-wiki-content
+  node "$TARGET_DIR/scripts/build-wiki-content.mjs"
+  ( cd "$TARGET_DIR/wiki" && npx quartz build -d "$WIKI_CONTENT_DIR" -o /srv/wiki )
+  echo "agile-board: published wiki for $new_sha to /srv/wiki"
 done

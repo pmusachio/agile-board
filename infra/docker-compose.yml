@@ -25,6 +25,9 @@ services:
       # Shared with Caddy: the post-receive hook checks a push out directly
       # into this directory as static files to serve.
       - board-site:/srv/board
+      # EPIC-013: the hook also builds the wiki (Quartz, static output) here,
+      # from the board-site checkout, and Caddy serves it read-only below.
+      - wiki-site:/srv/wiki
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -44,6 +47,7 @@ services:
       - ./data/caddy-data:/data
       - ./data/caddy-config:/config
       - board-site:/srv/board:ro
+      - wiki-site:/srv/wiki:ro
     depends_on: [gitea]
     networks: [board]
 
@@ -71,6 +75,9 @@ volumes:
   # ownership regardless of host OS — run `chown 1000:1000` on it once,
   # from inside the gitea container, before the first push.
   board-site:
+  # EPIC-013: Quartz's static build output for the wiki, written by the
+  # post-receive hook (same UID 1000 ownership fix applies).
+  wiki-site:
 
 networks:
   board:

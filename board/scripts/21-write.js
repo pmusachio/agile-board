@@ -237,6 +237,11 @@
         if (v === 'null' || v === '~') return true;
         if (/^\[.*\]$/.test(v)) return true;
         if (/^-?\d+(\.\d+)?$/.test(v)) return true;
+        // A `: ` inside the value parses fine under this project's own lenient
+        // parser (splits on the first colon only), but is invalid under a
+        // strict YAML parser -- caught when wiki/ (Quartz, real js-yaml)
+        // choked on exactly this in a title.
+        if (v.includes(': ')) return true;
         return false;
     }
 

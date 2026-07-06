@@ -78,3 +78,38 @@ assistant-api backend (assistant/, also MIT/original) to answer questions
 (POST /api/propose). Visible only when logged in (window.__agileBoardWriteMode,
 the same flag 21-write.js sets); reads the same stored Gitea token from
 localStorage rather than importing 21-write.js's private functions.
+
+wiki/quartz/, wiki/quartz.config.ts (config values only, see below),
+wiki/globals.d.ts, wiki/index.d.ts, wiki/tsconfig.json, wiki/package.json,
+wiki/package-lock.json, wiki/LICENSE.txt
+--------------------------------------------------------------------
+Vendored, UNMODIFIED except where noted below, from:
+
+  jackyzha0/quartz
+  https://github.com/jackyzha0/quartz
+  branch v4, commit d25a6eabf96751ffca56f8a8139272def7a65041 (2026-04-20)
+
+Licensed under the MIT License:
+
+  MIT License
+  Copyright (c) 2021 jackyzha0
+
+A copy of the full license text is at wiki/LICENSE.txt in this directory.
+Quartz is the static-site generator that builds the wiki (EPIC-013): reads
+the same story Markdown the board reads (via scripts/build-wiki-content.mjs,
+original code, which also injects a `[[wikilink]]`-rendered "At a glance"
+section per story so the depends_on/blocks/related/epic graph edges --
+frontmatter-only in stories/*.md -- become real navigable links, since
+Quartz's own wikilink/backlink resolution only looks at body text). Output
+is fully static HTML/CSS/JS; no server-side runtime or database beyond the
+one-time build step the Gitea post-receive hook runs on every push.
+
+wiki/quartz.config.ts, wiki/quartz.layout.ts
+--------------------------------------------------------------------
+MODIFICATIONS of the upstream files at the same commit referenced above.
+Changes: pageTitle, baseUrl, and ignorePatterns set for this project;
+analytics disabled (was Plausible); the CustomOgImages and Latex/katex
+plugins dropped (unused by this project's content, and this build runs on
+a small VM on every push rather than once on a laptop); the footer's
+upstream GitHub/Discord links replaced with a link back to /board/ and to
+this repository. Everything else in these two files is unmodified.

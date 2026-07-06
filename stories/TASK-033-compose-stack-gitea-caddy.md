@@ -1,6 +1,6 @@
 ---
 id: TASK-033-compose-stack-gitea-caddy
-title: Compose stack: Gitea + Caddy
+title: "Compose stack: Gitea + Caddy"
 status: done
 priority: high
 category: infra
