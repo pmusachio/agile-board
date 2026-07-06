@@ -54,18 +54,33 @@ that model generation on this account. `gemini-2.5-flash` and `gemini-2.5-flash-
 return real `HTTP 200` answers. Changed `assistant/lib/gemini.mjs`'s `DEFAULT_MODEL` to
 `gemini-2.5-flash`; redeployed (rebuild + force-recreate, same as TASK-090's process).
 
-**Update 2026-07-06 (same day) — still failed once after the fix.** Paulo tried again and
-got the same generic message. Logs showed the same `HTTP 404`, but this time reproducing
-the exact live pipeline directly inside the container (loadCorpus → assembleContext →
-askGemini, real 106KB context, real key, real question) **succeeded** with a correct,
-grounded answer — so the code, key, and model were all genuinely fine. The failed request's
-`404` had an *empty* response body, unlike Gemini's normal JSON error object for real
-failures (e.g. the quota-exhaustion 429 earlier had a full explanation) — a strong signal
-it was a transient upstream blip, not a real client error, quite possibly coinciding with
-my own rapid-fire diagnostic calls moments earlier. Added a single retry with a short
-backoff in `assistant/lib/gemini.mjs` (`callGemini()`, shared by both `askGemini` and
-`proposeActions`) so one flaky response doesn't surface as a failure to the user; also
-fixed the error message to say `(empty response body)` explicitly instead of silently
-going blank, so any *real*, persistent failure is easier to diagnose immediately next time.
-Verified with mocked fetch: a fail-then-succeed sequence recovers transparently; an
-always-failing sequence still throws with the clearer message, after exactly one retry.
+**Update 2026-07-06 (same day) — retry added, but the failure persisted.** Paulo tried
+again and got the same generic message. Manually reproducing the exact live pipeline
+inside the container (loadCorpus → assembleContext → askGemini, real 106KB context, real
+key) succeeded, so I initially (wrongly) concluded the `HTTP 404`'s empty body meant a
+transient upstream blip, and added a single retry with backoff in `callGemini()` plus
+clearer error logging. Paulo tried again — same failure, twice in a row even with the
+retry, ruling out "transient."
+
+**Update 2026-07-06 (same day) — actual root cause found.** Added temporary diagnostic
+logging (request URL minus the key, response status/headers/body — never the key or user
+content) and had Paulo try once more. The logged URL was
+`.../v1beta/models/:generateContent` — **the model name segment was completely empty.**
+Root cause: Docker Compose's `${GEMINI_MODEL:-}` in `docker-compose.yml` sets the
+container's `GEMINI_MODEL` env var to an **empty string** when `infra/.env` doesn't define
+it — not "unset". `''` is not `undefined`, so `askGemini`'s `model = DEFAULT_MODEL` default
+parameter (which only triggers for `undefined`) never kicked in; the real server code was
+building a URL with no model name at all, 404ing deterministically every single time. My
+earlier manual reproductions never hit this because they called `askGemini()` without
+passing `model` at all (parameter omitted, not passed as `''`) — an artifact of how I was
+testing, not the real code path.
+
+Fixed at two layers: `assistant/lib/gemini.mjs` now has a `resolveModel()` helper that
+treats *any* falsy `model` (`undefined`, `''`, `null`) as "use `DEFAULT_MODEL`", not just
+`undefined`; `assistant/server.mjs` also now reads `GEMINI_MODEL` as
+`process.env.GEMINI_MODEL || undefined` at the source, so an empty string never even
+reaches `gemini.mjs` in the first place. Removed the temporary diagnostic logging.
+Verified with a mocked fetch that all three cases (`''`, `undefined`, an explicit model
+name) resolve to the correct URL; verified live inside the container, with the exact
+broken `GEMINI_MODEL=""` still present, that `askGemini()` now correctly returns a real
+answer ("2 + 2 = 4").

@@ -12,13 +12,21 @@
 // and look for "generateContent" in supportedGenerationMethods.
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 
+// Real bug hit live 2026-07-06: Docker Compose's `${GEMINI_MODEL:-}` sets the
+// container's env var to an EMPTY STRING when .env doesn't define it, not
+// "unset". `''` is not `undefined`, so the `model = DEFAULT_MODEL` default
+// parameter never kicked in — the URL ended up as `.../models/:generateContent`
+// (no model name at all), which Gemini correctly 404s with an empty body.
+// This guard treats any falsy model (undefined, '', null) as "use the
+// default", regardless of how the caller ended up passing it that way.
+function resolveModel(model) {
+  return model || DEFAULT_MODEL;
+}
+
 // A single request occasionally comes back with an unhelpful, empty-bodied
-// 4xx/5xx that succeeds moments later on identical input (observed live
-// 2026-07-06: an empty-body HTTP 404, unlike Gemini's usual JSON error
-// object for real failures like quota exhaustion) — looks like a transient
-// upstream blip, not a real client error. One retry with a short backoff
-// absorbs that without masking a genuinely broken request (which will fail
-// the retry too, and still surface with full detail).
+// 4xx/5xx that succeeds moments later on identical input — one retry with a
+// short backoff absorbs that without masking a genuinely broken request
+// (which will fail the retry too, and still surface with full detail).
 async function callGemini(url, requestBody) {
   let lastError;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -36,8 +44,8 @@ async function callGemini(url, requestBody) {
   throw lastError;
 }
 
-export async function askGemini({ apiKey, model = DEFAULT_MODEL, systemContext, question }) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+export async function askGemini({ apiKey, model, systemContext, question }) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${resolveModel(model)}:generateContent?key=${apiKey}`;
   const body = await callGemini(url, {
     contents: [{ parts: [{ text: question }] }],
     systemInstruction: { parts: [{ text: systemContext }] },
@@ -52,8 +60,8 @@ export async function askGemini({ apiKey, model = DEFAULT_MODEL, systemContext, 
 // chosen actions, never file bytes (D12). Each returned action is exactly
 // one of assistant/lib/actions.mjs's tool calls, applied deterministically
 // by the caller (never executed by the model itself).
-export async function proposeActions({ apiKey, model = DEFAULT_MODEL, systemContext, instruction, tools }) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+export async function proposeActions({ apiKey, model, systemContext, instruction, tools }) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${resolveModel(model)}:generateContent?key=${apiKey}`;
   const body = await callGemini(url, {
     contents: [{ parts: [{ text: instruction }] }],
     systemInstruction: { parts: [{ text: systemContext }] },

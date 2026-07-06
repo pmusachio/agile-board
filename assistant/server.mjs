@@ -29,7 +29,12 @@ const PORT = process.env.PORT || 3100;
 const STORIES_DIR = process.env.STORIES_DIR || '/srv/board/stories';
 const GITEA_BASE_URL = process.env.GITEA_BASE_URL; // e.g. http://gitea:3000/
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL; // optional override
+// Optional override. Compose's `${GEMINI_MODEL:-}` sets this to an empty
+// string, not "unset", when infra/.env doesn't define it — `|| undefined`
+// here keeps that from ever reaching gemini.mjs as a falsy-but-defined
+// value (it defends against the same thing independently, but a bug
+// this real is worth two layers).
+const GEMINI_MODEL = process.env.GEMINI_MODEL || undefined;
 const REPO_OWNER = process.env.REPO_OWNER || 'paulo';
 const REPO_NAME = process.env.REPO_NAME || 'agile-board';
 const SCHEMA_PATH = process.env.SCHEMA_PATH || '/srv/board/docs/story.schema.json';

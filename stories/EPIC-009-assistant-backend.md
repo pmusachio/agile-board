@@ -31,9 +31,15 @@ Auth reuses Gitea's own /api/v1/user check (same call the client already makes i
 **Deployed live 2026-07-05, working 2026-07-06.** `https://agile-board.duckdns.org/api/health`
 and `/api/ask` both respond correctly through the real Caddy → assistant-api path; auth
 rejection verified against the real Gitea instance, and Paulo's own real login cleared the
-auth guard successfully (see TASK-091). One real bug found once the real key went in:
-`gemini-2.0-flash` (the hardcoded default) has zero free-tier quota on this account —
-`HTTP 429 limit: 0`, not a 401/403, so it wasn't an auth or key problem. Fixed by switching
-the default to `gemini-2.5-flash` (confirmed working directly against the real key) — see
-TASK-092. Awaiting Paulo's own confirmation through the browser as the final real-world
-check, but every piece of the pipeline is now independently verified.
+auth guard successfully (see TASK-091). Two real bugs found once the real key went in, both
+in TASK-092: (1) `gemini-2.0-flash` (the original hardcoded default) has zero free-tier
+quota on this account (`HTTP 429 limit: 0`); (2) the actual root cause of what looked like a
+persistent failure afterward — Docker Compose's `${GEMINI_MODEL:-}` sets the env var to an
+**empty string**, not unset, when undefined in `.env`, and `''` doesn't trigger a JS default
+parameter the way `undefined` does, so the real server was building a Gemini URL with no
+model name at all every single time. Found via temporary diagnostic logging (never exposed
+the key), fixed at two layers (`gemini.mjs`'s `resolveModel()` treats any falsy value as
+"use the default"; `server.mjs` also normalizes `''` to `undefined` at the source). Verified
+live inside the container with the exact broken env var still present. This is now genuinely
+done, not just "should work" — every piece of the pipeline is independently verified against
+the real deployed service.
