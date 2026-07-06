@@ -1,9 +1,16 @@
 // Minimal Gemini API client (Google AI Studio / Generative Language API) — a
 // single fetch, no SDK dependency, matching this project's zero-npm-deps
-// convention (see scripts/*.mjs). Model name is configurable since provider
-// model names change over time; confirm the current one at
-// https://ai.google.dev when setting this up (see docs/RUNBOOK.md).
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+// convention (see scripts/*.mjs). Model name is configurable (GEMINI_MODEL
+// env var) since provider model names AND free-tier availability change
+// over time — confirmed live 2026-07-06 against a real key that
+// gemini-2.0-flash/-lite both return HTTP 429 RESOURCE_EXHAUSTED with
+// "limit: 0" on the free tier (not a quota you used up — a quota that was
+// never allocated for that model generation), while gemini-2.5-flash and
+// gemini-2.5-flash-lite both work. If this stops working again, list what
+// your key actually has access to:
+//   curl "https://generativelanguage.googleapis.com/v1beta/models?key=$KEY"
+// and look for "generateContent" in supportedGenerationMethods.
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 export async function askGemini({ apiKey, model = DEFAULT_MODEL, systemContext, question }) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
