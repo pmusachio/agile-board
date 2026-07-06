@@ -1,7 +1,7 @@
 ---
 id: TASK-062-contents-api-client
 title: Gitea Contents API client
-status: in-progress
+status: done
 priority: high
 category: frontend
 assignees: ["@paulo"]
