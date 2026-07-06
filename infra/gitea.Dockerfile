@@ -7,6 +7,9 @@
 # nodejs-current apk happens to be current for this Alpine release.
 FROM node:22-alpine AS node
 FROM gitea/gitea:1.22
+# node:22-alpine's binary is musl-built but still dynamically links libstdc++/
+# libgcc -- gitea's own Alpine base doesn't have those installed by default.
+RUN apk add --no-cache libstdc++ libgcc
 COPY --from=node /usr/local/bin/node /usr/local/bin/
 COPY --from=node /usr/local/bin/npm /usr/local/bin/
 COPY --from=node /usr/local/bin/npx /usr/local/bin/
