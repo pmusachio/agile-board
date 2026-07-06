@@ -1,7 +1,7 @@
 ---
 id: EPIC-013-wiki-os-fork-deploy
 title: Fork & deploy the wiki knowledge view
-status: in-progress
+status: done
 priority: high
 category: infra
 assignees: ["@paulo"]
@@ -9,7 +9,7 @@ epic: null
 created: 2026-07-04
 started: 2026-07-06
 due: null
-finished: null
+finished: 2026-07-06
 tags: ["#wiki", "#infra"]
 estimate: null
 depends_on: []
@@ -29,8 +29,8 @@ a static-site generator purpose-built for this exact case — no server, no data
 output served as plain static files by Caddy exactly like /board/ already is.
 
 ## Acceptance Criteria
-- [ ] TASK-130..134 complete
-- [ ] /wiki/ serves a browsable wiki over the live corpus with working links + graph view
+- [x] TASK-130..134 complete
+- [x] /wiki/ serves a browsable wiki over the live corpus with working links + graph view
 
 ## Subtasks
 
@@ -39,15 +39,18 @@ Vendored (not upstream-as-is) so the deployed version is pinned and patchable, s
 reasoning as the MarkdownTaskManager fork. Low lock-in regardless: it's read-only
 presentation over Markdown git already owns, so worst case is losing a view, never data.
 
-Locally verified before touching the VM: `wiki/` (vendored Quartz v4.5.2, pinned commit
-d25a6eab) builds real story content in under 1s, wikilinks/backlinks/graph all confirmed
-working in a browser preview against the real 79-story corpus. Caught and fixed two real
-bugs along the way (see TASK-130/133's notes): a YAML-quoting gap in this project's own
-frontmatter serializer, and a `related`/`depends_on`/`blocks` graph-edge visibility gap
-(those edges live only in frontmatter, never in body text, so Quartz's own wikilink
-resolution — which only scans body Markdown — would never have surfaced them without
-scripts/build-wiki-content.mjs injecting an "At a glance" section per page).
+**Live at `https://agile-board.duckdns.org/wiki/` as of 2026-07-06.** Locally verified
+first (browser preview against the real 79-story corpus: wikilinks/backlinks/graph all
+working), then deployed for real, hitting five more real bugs along the way that only
+showed up on the actual VM (Alpine/musl, not macOS) — see TASK-131/132/134's notes for
+each: Node 20→22 + missing npm, a missing libstdc++/libgcc, a broken npm/npx symlink from
+a naive `COPY`, npx's shebang needing GNU `env -S` (BusyBox doesn't have it), and Quartz's
+clean-output-dir step failing on a Docker volume mount root. Also two bugs caught locally
+before ever touching the VM (TASK-130/133's notes): a YAML-quoting gap in this project's
+own frontmatter serializer, and the fact that `related`/`depends_on`/`blocks`/`epic` are
+frontmatter-only, never in body text, so Quartz's own wikilink resolution would never have
+surfaced them without `scripts/build-wiki-content.mjs` injecting an "At a glance" section.
 
-Resource fit on the 1GB VM (TASK-134) is a smaller concern now than it was for wiki-os:
-Quartz has no persistent process or database, just a build step. Still needs a real
-measurement on the actual VM before calling it done.
+Resource fit on the 1GB VM (TASK-134) turned out to be a non-issue: no persistent process,
+`npm ci` (~1 min, once) and the build itself (~16s, on every push) both comfortable within
+the box's means, memory and disk barely moved.

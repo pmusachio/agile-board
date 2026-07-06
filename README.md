@@ -30,6 +30,11 @@ that should be reasoning over the team's actual work.
 - **An AI that reads and acts on the board.** Logged in, chat with it: **ask**
   a grounded question, or **propose** a change in plain language. It opens a
   Gitea pull request for you to merge — it never writes to `main` directly.
+- **A wiki for non-technical readers.** [`wiki/`](wiki/) is a vendored
+  [Quartz](https://github.com/jackyzha0/quartz) build — homepage, search,
+  backlinks, and a graph view over the exact same stories, rebuilt statically
+  on every push. No login needed, no separate data: browsing connections
+  beats scanning columns for someone who just wants to understand the work.
 - **Free infrastructure.** [Gitea](https://about.gitea.com/) on an Oracle
   Cloud Always-Free VM is the git server, static host, and assistant backend.
   Also mirrors to GitHub.
@@ -45,12 +50,15 @@ flowchart LR
 
   subgraph oci[OCI Always Free VM]
     G[(Gitea - git server)]
-    H[post-receive hook<br/>checkout + build manifest + graph]
+    H[post-receive hook<br/>checkout + build manifest + graph + wiki]
     S[/srv/board static files/]
+    W[/srv/wiki/public<br/>Quartz static build/]
     C[Caddy - auto TLS reverse proxy]
     A[assistant-api<br/>no host port]
     G --> H --> S
+    H --> W
     C --- S
+    C --- W
     C --- G
     C --- A
   end
@@ -65,12 +73,14 @@ flowchart LR
 
   subgraph viewer[Any browser]
     V[board/index.html]
+    K[wiki at /wiki/]
   end
 
   E3 -->|push| G
   G -->|push-mirror| M
   V -->|GET index.json + story .md| C
   C -->|serve| V
+  C -->|serve, no login needed| K
   V -.->|logged in: drag / edit -> Contents API write, a real commit| G
   V -.->|logged in: ask / propose| C
   A -->|verify token| G
@@ -79,8 +89,8 @@ flowchart LR
 ```
 
 - A push to `main` — git, a browser edit, or a merged AI proposal, all real
-  commits — triggers a Gitea hook that rebuilds `stories/index.json` and
-  `stories/graph.json`.
+  commits — triggers a Gitea hook that rebuilds `stories/index.json`,
+  `stories/graph.json`, and the wiki.
 - Caddy serves those as static files; the viewer fetches the manifest and
   lazy-loads a story's Markdown only when its card is opened.
 - The assistant backend checks the caller's Gitea token, assembles the
@@ -88,6 +98,9 @@ flowchart LR
 - A proposed change becomes a bounded action list, validated against the
   board's own schema, then opened as a branch + PR — no path writes to
   `main` directly.
+- The same hook regenerates the wiki (Quartz, a static-site build, no
+  server or database) from the current stories — always in sync with the
+  board, never a second copy of the data.
 
 ## Using the board
 
@@ -102,6 +115,12 @@ story's fields directly.
 button appears. Ask a question ("what's blocked on TASK-X?") for a grounded
 answer, or describe a change ("mark TASK-X done") — you'll get a link to a
 Gitea pull request with exactly that change, ready to review and merge.
+
+**To browse instead of scan:** click **🧠 Wiki** (or go straight to
+[the wiki](https://agile-board.duckdns.org/wiki/)) for a homepage, search,
+backlinks, and a graph view over the same stories — no login needed, better
+suited to "what is this initiative and how did it get here" than a kanban
+column is.
 
 **To add a story, or edit relationship fields** (`depends_on` / `blocks` /
 `related` / `epic`) **by hand:** still a git workflow. Copy
