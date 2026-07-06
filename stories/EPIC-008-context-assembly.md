@@ -1,7 +1,7 @@
 ---
 id: EPIC-008-context-assembly
 title: Context assembly for the assistant
-status: done
+status: in-progress
 priority: high
 category: data
 assignees: ["@paulo"]
