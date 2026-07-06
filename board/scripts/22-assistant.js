@@ -35,11 +35,15 @@
     function buildPanel() {
         const panel = document.createElement('div');
         panel.id = 'assistantPanel';
+        // Themed via this project's own CSS variables (00-variables.css), not
+        // a hardcoded white — the board's dark theme sets a light body text
+        // color meant for a dark background; a fixed white background here
+        // inherited that light color and was nearly unreadable.
         panel.style.cssText =
             'display:none; position:fixed; bottom:1.5rem; right:1.5rem; width:360px; ' +
-            'max-height:70vh; background:white; border:1px solid var(--border-color); ' +
-            'border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.15); ' +
-            'display:flex; flex-direction:column; z-index:1000; overflow:hidden;';
+            'max-height:70vh; background:var(--bg-secondary); color:var(--text-primary); ' +
+            'border:1px solid var(--border-color); border-radius:10px; ' +
+            'box-shadow:var(--shadow-hover); flex-direction:column; z-index:1000; overflow:hidden;';
         panel.innerHTML = `
             <div style="padding:0.75rem 1rem; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
                 <strong>🤖 Assistant</strong>
@@ -52,7 +56,7 @@
             <div id="assistantResult" style="flex:1; overflow-y:auto; padding:0 1rem; font-size:0.9rem; white-space:pre-wrap;"></div>
             <div style="padding:0.75rem 1rem; border-top:1px solid var(--border-color); display:flex; gap:0.5rem;">
                 <input id="assistantInput" type="text" placeholder="Ask a question, or describe a change..."
-                       style="flex:1; padding:0.5rem; border:1px solid var(--border-color); border-radius:6px;">
+                       style="flex:1; padding:0.5rem; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-input); color:var(--text-primary);">
                 <button id="assistantSendBtn" class="btn btn-primary">Send</button>
             </div>
         `;
