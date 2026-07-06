@@ -1,7 +1,7 @@
 ---
 id: TASK-063-autosave-override-unsanitize
 title: autoSave() override + dirty-diff + un-sanitize guard
-status: in-review
+status: done
 priority: high
 category: frontend
 assignees: ["@paulo"]

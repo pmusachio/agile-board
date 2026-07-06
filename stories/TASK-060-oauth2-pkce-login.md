@@ -1,7 +1,7 @@
 ---
 id: TASK-060-oauth2-pkce-login
 title: OAuth2 + PKCE login with Gitea
-status: in-progress
+status: done
 priority: high
 category: frontend
 assignees: ["@paulo"]
