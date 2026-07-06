@@ -229,3 +229,10 @@ infra/.env
 infra/*.env
 infra/data/
 *.local.yml
+
+# Internal planning/ops docs — kept locally for ongoing MVP work, not published
+# to the public repo (GitHub/Gitea only see the trimmed README + this repo's code).
+docs/PRD.md
+docs/TASKS.md
+docs/RUNBOOK.md
+docs/CONTRIBUTING.md

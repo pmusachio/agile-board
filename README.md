@@ -1,47 +1,38 @@
 # agile-board
 
-A git-native, Markdown-based agile board with an AI that understands and helps
-manage it. Stories live as plain Markdown files in a git repository; a
-single-page viewer renders them as a Kanban board, and a Gemini-backed
-assistant can answer questions about the board or propose changes as a Gitea
-pull request you review and merge.
+A git-native Kanban board with an AI that can read it and act on it. Stories
+are Markdown files in a git repo; a static viewer renders them as a board; a
+Gemini-backed assistant can answer questions about it or open a pull request
+to change it.
+
+![agile-board Kanban view](docs/screenshots/board.png)
 
 **Live demo:** https://agile-board.duckdns.org/board/ — a personal Always-Free
 OCI instance, so treat it as a demo, not an SLA.
 
 ## The problem
 
-Engineering teams need a shared board (Asana-style: stories, projects,
-dependencies). Commercial tools are paid/seat-limited, and their data lives in
-a closed vendor database — hard to version, hard to diff, and hard to hand to
-an AI that should reason over the team's own work.
+Team boards (Asana-style: stories, dependencies, status) usually live in a
+closed vendor database — paid, seat-limited, hard to diff, and opaque to an AI
+that should be reasoning over the team's actual work.
 
 ## The solution
 
-- **Markdown + git as the database.** Each story is one Markdown file with
-  YAML frontmatter (status, priority, assignees, dates, tags, and explicit
-  relationship fields like `depends_on`/`blocks`/`related`). Free, diffable,
-  offline-capable, and already shaped like graph edges for an AI to reason over.
+- **Markdown + git as the database.** One file per story: frontmatter for
+  status/priority/dates/tags, plus graph fields (`depends_on` / `blocks` /
+  `related`). Free, diffable, already graph-shaped.
 - **A forked viewer, not a new one.** [`board/`](board/) is
   [ioniks/MarkdownTaskManager](https://github.com/ioniks/MarkdownTaskManager)
-  (MPL-2.0), adapted to be entirely web-based (see [NOTICE](NOTICE) for
-  exactly what changed).
-- **Editing is a real git commit either way.** Anyone with the link gets a
-  read-only board. Log in with your own Gitea account (self-service, nobody
-  needs to approve you) and you can drag cards between columns and edit a
-  story directly in the browser — each change is a genuine commit, authored
-  by you, via Gitea's API, not a database write.
-- **An AI that understands *and* acts on the board.** Logged in, a chat panel
-  lets you **ask** a question grounded in the actual current stories and their
-  relationships, or **propose** a change in plain language ("mark X done and
-  split Y into two stories") — the assistant drafts the exact changes and
-  opens a **Gitea pull request** for you to review and merge. Nothing reaches
-  the live board without that merge, so "the AI controls the board" and "a
-  person approved every change" are both true at once.
-- **Self-hosted on free infrastructure.** [Gitea](https://about.gitea.com/) on
-  an Oracle Cloud Always-Free VM is the git server, the board's static host,
-  and the assistant's backend — no company cloud account required. The repo
-  also mirrors to GitHub for full history.
+  (MPL-2.0), made fully browser-based — [NOTICE](NOTICE) has the exact diff.
+- **Every edit is a real commit.** Read access is public. Log in with a
+  self-service Gitea account to drag cards and edit stories — each save
+  lands as a commit under your name.
+- **An AI that reads and acts on the board.** Logged in, chat with it: **ask**
+  a grounded question, or **propose** a change in plain language. It opens a
+  Gitea pull request for you to merge — it never writes to `main` directly.
+- **Free infrastructure.** [Gitea](https://about.gitea.com/) on an Oracle
+  Cloud Always-Free VM is the git server, static host, and assistant backend.
+  Also mirrors to GitHub.
 
 ## How it works
 
@@ -87,43 +78,38 @@ flowchart LR
   A -.->|propose: branch + PR, never main directly| G
 ```
 
-A push to `main` (from git, a logged-in browser edit, or a merged AI proposal
-— all real commits) triggers a Gitea hook that checks the tree out onto the
-server and rebuilds `stories/index.json` (card metadata) and
-`stories/graph.json` (the relationship graph); Caddy serves that directory as
-static files; the viewer fetches the manifest, then lazy-loads a story's full
-Markdown only when its card is clicked.
-
-The assistant backend (`assistant-api`) verifies the caller's Gitea token,
-assembles the current board + graph as context, and calls Gemini with a
-server-side-only API key (never exposed to the browser). For a proposed
-change, it applies a bounded set of actions (move a card, edit a field, link
-or split stories, ...), validates the result against the same schema the
-board itself enforces, and opens a branch + pull request through Gitea's API
-— it has no code path that writes to `main` directly.
+- A push to `main` — git, a browser edit, or a merged AI proposal, all real
+  commits — triggers a Gitea hook that rebuilds `stories/index.json` and
+  `stories/graph.json`.
+- Caddy serves those as static files; the viewer fetches the manifest and
+  lazy-loads a story's Markdown only when its card is opened.
+- The assistant backend checks the caller's Gitea token, assembles the
+  current board + graph as context, and calls Gemini with a server-only key.
+- A proposed change becomes a bounded action list, validated against the
+  board's own schema, then opened as a branch + PR — no path writes to
+  `main` directly.
 
 ## Using the board
 
 Open the [live link](https://agile-board.duckdns.org/board/) — no account
 needed to look around.
 
-**To edit:** click **"Log in with Gitea"** — self-service sign-up, one click,
-no approval needed. Once logged in you can drag cards between columns and
-edit a story's fields directly.
+**To edit:** click **"Log in with Gitea"** — self-service, one click, no
+approval needed. Once logged in you can drag cards between columns and edit a
+story's fields directly.
 
 **To ask or propose changes with AI:** once logged in, a **🤖 Assistant**
-button appears. Type a question ("what's blocked on TASK-X?") for a grounded
-answer, or switch to "Propose a change" and describe what you want ("mark
-TASK-X done") — you'll get a link to a Gitea pull request with exactly that
-change, ready for you to review and merge.
+button appears. Ask a question ("what's blocked on TASK-X?") for a grounded
+answer, or describe a change ("mark TASK-X done") — you'll get a link to a
+Gitea pull request with exactly that change, ready to review and merge.
 
-**To add a new story, or edit a story's relationships** (`depends_on` /
-`blocks` / `related` / `epic`) **by hand:** these stay a git workflow rather
-than a UI form. Clone the repo, copy [`stories/_TEMPLATE.md`](stories/_TEMPLATE.md)
-to `stories/TASK-<id>-<slug>.md` (or `EPIC-...`), fill in the frontmatter and
+**To add a story, or edit relationship fields** (`depends_on` / `blocks` /
+`related` / `epic`) **by hand:** still a git workflow. Copy
+[`stories/_TEMPLATE.md`](stories/_TEMPLATE.md) to
+`stories/TASK-<id>-<slug>.md` (or `EPIC-...`), fill in the frontmatter and
 body, then:
 ```
-node scripts/validate-stories.mjs   # check it against the schema
+node scripts/validate-stories.mjs
 git add stories/TASK-123-my-story.md
 git commit -m "TASK-123: add story for X"
 git push
@@ -166,10 +152,9 @@ related: ["[[EPIC-003-infrastructure]]"]  # wiki-links -> the knowledge graph
 | `depends_on` / `blocks` | id[] | no | Graph edges between stories. |
 | `related` | `[[id]]`[] | no | Wiki-links — also graph edges. |
 
-Machine-readable schema: [`docs/story.schema.json`](docs/story.schema.json),
-enforced by `node scripts/validate-stories.mjs`. This project's own backlog is
-dogfooded as real stories under [`stories/`](stories/) — the repo's history
-*is* the board.
+Schema: [`docs/story.schema.json`](docs/story.schema.json), enforced by
+`node scripts/validate-stories.mjs`. The backlog under [`stories/`](stories/)
+is this project's own — dogfooded, not sample data.
 
 ## License
 
