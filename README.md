@@ -116,11 +116,8 @@ button appears. Ask a question ("what's blocked on TASK-X?") for a grounded
 answer, or describe a change ("mark TASK-X done") — you'll get a link to a
 Gitea pull request with exactly that change, ready to review and merge.
 
-**To browse instead of scan:** click **🧠 Wiki** (or go straight to
-[the wiki](https://agile-board.duckdns.org/wiki/)) for a homepage, search,
-backlinks, and a graph view over the same stories — no login needed, better
-suited to "what is this initiative and how did it get here" than a kanban
-column is.
+**To browse instead of scan:** click **🧠 Wiki** — see [The wiki](#the-wiki)
+below.
 
 **To add a story, or edit relationship fields** (`depends_on` / `blocks` /
 `related` / `epic`) **by hand:** still a git workflow. Copy
@@ -134,6 +131,37 @@ git commit -m "TASK-123: add story for X"
 git push
 ```
 The board updates automatically after the push.
+
+## The wiki
+
+**What it's for:** the board is a *doing* surface — great for "what's in
+progress," not for "what is this initiative and how did it get here." The
+wiki is the same stories rendered as a browsable knowledge base instead: a
+homepage, full-text search, and one page per story, connected by the same
+relationships the board already tracks. Aimed at anyone who'd rather click
+through connected ideas than parse kanban columns — no login needed, since
+it's read-only (all edits still go through the board or git).
+
+![agile-board wiki homepage](docs/screenshots/wiki-home.png)
+
+**How to use it:** open [the wiki](https://agile-board.duckdns.org/wiki/) (or
+click **🧠 Wiki** from the board). Search, or start from an epic on the
+homepage and follow links from there — every mention of another story is
+clickable, and the **Graph View** in the sidebar shows the same connections
+visually. Each page's **At a glance** block also states its status, priority,
+and assignees up front, so you don't need to know the frontmatter schema to
+read it.
+
+**The graph logic:** a story's `depends_on`, `blocks`, `related`, and `epic`
+fields are edges, not just metadata — the same edges [`scripts/build-graph.mjs`](scripts/build-graph.mjs)
+already computes for the AI assistant. The wiki renders them as real
+`[[wikilinks]]` in that "At a glance" block, which is what makes them
+*navigable* and gives every page automatic **backlinks** ("what points to
+this") without maintaining that list by hand. Since it's all derived from the
+same `stories/*.md`, a merge always keeps board and wiki in sync — there's
+no second copy of the data anywhere.
+
+![A story page with At a glance, graph view, and backlinks](docs/screenshots/wiki-story.png)
 
 ## Data model
 
