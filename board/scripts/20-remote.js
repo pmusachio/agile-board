@@ -35,9 +35,9 @@
 
     let readOnlyMode = false;
     // board/ and stories/ are siblings in the repo, and the whole repo is what gets
-    // checked out and served (see docs/PRD.md #8) — so from board/index.html the
-    // story data one level up, at ../stories/, not ./stories/. Override with ?board=
-    // when serving the viewer from a different location.
+    // checked out and served — so from board/index.html the story data is one
+    // level up, at ../stories/, not ./stories/. Override with ?board= when
+    // serving the viewer from a different location.
     let remoteBaseUrl = '../stories/';
 
     function capitalize(word) {
@@ -134,7 +134,7 @@
     // Gated on window.__agileBoardWriteMode (set by the optional 21-write.js):
     // creating new stories (column-add-btn) and archiving/deleting a story stay
     // out of scope even when logged in — everything else un-gates for a
-    // logged-in, write-capable session. See docs/PRD.md's MVP1.5 plan.
+    // logged-in, write-capable session.
     function sanitizeBoardDom() {
         if (!window.__agileBoardWriteMode) {
             document.querySelectorAll('.task-card').forEach((el) => el.removeAttribute('draggable'));

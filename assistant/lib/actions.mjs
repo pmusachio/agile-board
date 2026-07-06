@@ -3,7 +3,7 @@
 // one action into a file change. The model NEVER writes file bytes — every
 // tool here maps 1:1 to a mutation this module applies via fetch-merge-write
 // (overlay only the named field, preserve everything else byte-for-byte —
-// the MVP1.5 data-loss lesson encoded as a rule). See docs/PRD.md #14.4/D12.
+// the MVP1.5 data-loss lesson encoded as a rule).
 import { splitSections, parseChecklist, buildBody } from '../../scripts/lib/sections.mjs';
 import { serializeFrontmatter } from '../../scripts/lib/serialize.mjs';
 

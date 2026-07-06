@@ -12,7 +12,7 @@
 // post-receive hook publishes to and Caddy serves statically — mounted
 // read-only into this container), never from its own image copy, so it
 // always sees the live board. Code (this file, scripts/lib/*) comes from
-// the image; data comes from the shared volume. See docs/PRD.md #14.3.
+// the image; data comes from the shared volume.
 import { createServer } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -107,7 +107,7 @@ async function handleAsk(req, res, username) {
   if (!GEMINI_API_KEY) {
     // Never present the missing-key state as a generic 500 — this is an
     // operator configuration gap, not a runtime bug, and the distinction
-    // matters when debugging a fresh deploy (see docs/RUNBOOK.md).
+    // matters when debugging a fresh deploy.
     return sendJson(res, 503, { error: 'assistant not configured (missing GEMINI_API_KEY)' });
   }
 

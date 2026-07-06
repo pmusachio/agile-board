@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/pmusachio/agile-board/docs/story.schema.json",
   "title": "Story",
-  "description": "Frontmatter schema for a single story file under stories/*.md. See docs/PRD.md #6 for rationale.",
+  "description": "Frontmatter schema for a single story file under stories/*.md.",
   "type": "object",
   "additionalProperties": false,
   "required": ["id", "title", "status", "priority", "created"],

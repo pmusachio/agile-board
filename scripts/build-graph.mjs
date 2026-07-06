@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Scans stories/*.md and writes stories/graph.json: nodes + edges derived from
 // depends_on/blocks/epic/related plus [[wiki-links]] found inside story bodies
-// (not just the frontmatter related array — see docs/PRD.md #14.5/#15).
+// (not just the frontmatter related array).
 // depends_on/blocks/epic are also stored reversed, so "what's blocked on X" or
 // "what are this epic's children" is a direct lookup, not an O(n) scan.
 // Run manually to preview locally, or by the Gitea post-receive hook on push.

@@ -2,7 +2,7 @@
 // Scans stories/*.md and writes stories/index.json: the lightweight manifest
 // the board viewer fetches to render cards without loading every story body.
 // Run manually to preview locally, or by the Gitea post-receive hook on push
-// (see infra/ and docs/PRD.md #8).
+// (see infra/).
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';

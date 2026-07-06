@@ -1,6 +1,5 @@
 # Self-hosted stack for agile-board: Gitea (git server + source of truth) and
 # Caddy (automatic HTTPS + static file server for the published board).
-# See docs/RUNBOOK.md for the full provisioning walkthrough.
 services:
   gitea:
     build:
@@ -17,14 +16,14 @@ services:
       - GITEA__server__SSH_PORT=2222
       - GITEA__server__SSH_LISTEN_PORT=22
       # Skip the web install wizard; boot straight into a ready SQLite instance
-      # and create the admin user via `gitea admin user create` instead (see
-      # docs/RUNBOOK.md) — no browser interaction required.
+      # and create the admin user via `gitea admin user create` instead — no
+      # browser interaction required.
       - GITEA__security__INSTALL_LOCK=true
       - GITEA__database__DB_TYPE=sqlite3
     volumes:
       - ./data/gitea:/data
-      # Shared with Caddy: the post-receive hook (installed per docs/RUNBOOK.md)
-      # checks a push out directly into this directory as static files to serve.
+      # Shared with Caddy: the post-receive hook checks a push out directly
+      # into this directory as static files to serve.
       - board-site:/srv/board
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
@@ -48,7 +47,7 @@ services:
     depends_on: [gitea]
     networks: [board]
 
-  # MVP2 assistant backend (docs/PRD.md #14.3). No npm dependencies (Node
+  # MVP2 assistant backend. No npm dependencies (Node
   # built-ins only); reads the story corpus read-only from the same
   # board-site volume Caddy serves — never a second copy of the data.
   # No host port mapping: only reachable through Caddy's /api/* route.
@@ -69,8 +68,8 @@ services:
 
 volumes:
   # A named volume (not a host bind mount) so it's created with consistent
-  # ownership regardless of host OS — see docs/RUNBOOK.md for the one-time
-  # `chown 1000:1000` step needed inside it before the first push.
+  # ownership regardless of host OS — run `chown 1000:1000` on it once,
+  # from inside the gitea container, before the first push.
   board-site:
 
 networks:

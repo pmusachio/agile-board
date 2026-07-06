@@ -22,14 +22,14 @@
     // ---- Config — specific to this deployment, not meant to be generic ----
     const REPO_OWNER = 'paulo';
     const REPO_NAME = 'agile-board';
-    // Filled in after registering the OAuth2 app in Gitea (see docs/RUNBOOK.md).
+    // Filled in after registering the OAuth2 app in Gitea.
     // A public-client OAuth2 client_id is not a secret — safe to hardcode here.
     const GITEA_CLIENT_ID = 'd6ed8e80-70b1-4c16-926f-5bcbd3785e7f';
     const TOKEN_KEY = 'agile-board.gitea-token';
     const PKCE_KEY = 'agile-board.pkce';
     const OAUTH_SCOPE = 'write:repository read:user';
 
-    // board/ and git/ are siblings behind the same Caddy site (see docs/PRD.md #8).
+    // board/ and git/ are siblings behind the same Caddy site.
     const GITEA_BASE = new URL('../git/', document.baseURI).toString();
     // Normalizes to the board's own directory regardless of whether this page
     // was reached via /board/ or /board/index.html — must exactly match what's
@@ -318,7 +318,7 @@
         // edit text, add new); only deleting one of those *original* AC items
         // via the merged UI breaks this assumption. That narrow edge case is
         // accepted over the alternative (always collapsing AC into Subtasks on
-        // every save) — see docs/PRD.md's MVP1.5 plan for the tradeoff.
+        // every save).
         const acCount = parseChecklist(serverAcceptanceCriteria).length;
         const subtasksOnly = (task.subtasks || []).slice(acCount);
 

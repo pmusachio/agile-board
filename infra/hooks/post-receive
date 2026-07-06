@@ -6,7 +6,7 @@
 #
 # Install by copying this file to the bare repo's own hooks/post-receive,
 # e.g. /data/git/repositories/<owner>/<repo>.git/hooks/post-receive inside the
-# gitea container, and `chmod +x` it. See docs/RUNBOOK.md.
+# gitea container, and `chmod +x` it.
 set -eu
 
 TARGET_DIR=/srv/board

@@ -12,7 +12,7 @@
  *
  * Two capabilities, one panel: **Ask** (question in, grounded answer out)
  * and **Propose** (instruction in, a Gitea PR out — nothing touches the
- * live board until a human merges it). See docs/PRD.md #14.
+ * live board until a human merges it).
  */
 (function () {
     const TOKEN_KEY = 'agile-board.gitea-token';

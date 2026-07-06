@@ -72,7 +72,7 @@ of the read-only mode in board/scripts/20-remote.js.
 board/scripts/22-assistant.js
 --------------------------------------------------------------------
 Original work by Paulo Musachio, part of agile-board. Licensed under MIT
-(see ../LICENSE). MVP2 (docs/PRD.md #14): a chat panel calling the
+(see ../LICENSE). A chat panel calling the
 assistant-api backend (assistant/, also MIT/original) to answer questions
 (POST /api/ask) or propose board changes as a Gitea pull request
 (POST /api/propose). Visible only when logged in (window.__agileBoardWriteMode,

@@ -1,6 +1,6 @@
 // Verifies a caller's Gitea bearer token the same way board/scripts/21-write.js's
 // fetchUsername() already does client-side (GET /api/v1/user) — no new auth
-// system, no new scope. See docs/PRD.md #14.3.
+// system, no new scope.
 export async function verifyGiteaToken(giteaBaseUrl, token) {
   if (!token) return null;
   let res;

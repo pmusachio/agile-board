@@ -1,7 +1,7 @@
 // Body-section helpers shared by the AI write-actions applier (assistant/lib/
 // actions.mjs) and mirroring board/scripts/21-write.js's client-side logic
 // exactly, so client and server writers never disagree about the same
-// Markdown shape. See docs/PRD.md #14.4.
+// Markdown shape.
 
 // Split a story body into its "## Heading" sections, keyed by lowercased text.
 export function splitSections(body) {
