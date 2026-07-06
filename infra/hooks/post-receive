@@ -34,6 +34,11 @@ while read -r old_sha new_sha ref_name; do
   # shebang (`#!/usr/bin/env -S node --no-deprecation`), and Alpine's
   # BusyBox `env` doesn't support GNU's `-S` (splits one shebang arg into
   # several); calling node on the file directly sidesteps that entirely.
-  ( cd "$TARGET_DIR/wiki" && node --no-deprecation quartz/bootstrap-cli.mjs build -d "$WIKI_CONTENT_DIR" -o /srv/wiki )
-  echo "agile-board: published wiki for $new_sha to /srv/wiki"
+  # Quartz's own "clean output dir" step removes and recreates -o's target,
+  # which fails with EACCES on /srv/wiki directly: it's a Docker volume
+  # mount root, and the kernel refuses to let anything rmdir a mount point
+  # from inside the container, regardless of file ownership. Building into
+  # a subdirectory of the volume sidesteps it.
+  ( cd "$TARGET_DIR/wiki" && node --no-deprecation quartz/bootstrap-cli.mjs build -d "$WIKI_CONTENT_DIR" -o /srv/wiki/public )
+  echo "agile-board: published wiki for $new_sha to /srv/wiki/public"
 done

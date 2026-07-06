@@ -14,11 +14,13 @@
 	}
 
 	# EPIC-013: the wiki (Quartz static build, rebuilt by the post-receive
-	# hook alongside stories/index.json). Quartz emits clean URLs (no .html
-	# extension) -- try_files resolves them against the files actually on
-	# disk, same recipe Caddy's own docs give for any static site like this.
+	# hook alongside stories/index.json). /srv/wiki/public, not /srv/wiki
+	# itself, since Quartz's build recreates its -o target and Docker won't
+	# let anything rmdir a volume's mount root. Quartz emits clean URLs (no
+	# .html extension) -- try_files resolves them against the files actually
+	# on disk, same recipe Caddy's own docs give for any static site like this.
 	handle_path /wiki/* {
-		root * /srv/wiki
+		root * /srv/wiki/public
 		try_files {path} {path}.html {path}/index.html /404.html
 		file_server
 	}
