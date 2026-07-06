@@ -1,7 +1,7 @@
 ---
 id: EPIC-009-assistant-backend
 title: Assistant backend service
-status: done
+status: in-progress
 priority: high
 category: backend
 assignees: ["@paulo"]
