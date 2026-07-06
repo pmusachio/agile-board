@@ -29,6 +29,11 @@ while read -r old_sha new_sha ref_name; do
   fi
   export WIKI_CONTENT_DIR=/tmp/agile-board-wiki-content
   node "$TARGET_DIR/scripts/build-wiki-content.mjs"
-  ( cd "$TARGET_DIR/wiki" && npx quartz build -d "$WIKI_CONTENT_DIR" -o /srv/wiki )
+  # `node` directly on Quartz's own CLI entrypoint, not `npx quartz` -- npx
+  # resolves the `quartz` bin alias by executing bootstrap-cli.mjs's own
+  # shebang (`#!/usr/bin/env -S node --no-deprecation`), and Alpine's
+  # BusyBox `env` doesn't support GNU's `-S` (splits one shebang arg into
+  # several); calling node on the file directly sidesteps that entirely.
+  ( cd "$TARGET_DIR/wiki" && node --no-deprecation quartz/bootstrap-cli.mjs build -d "$WIKI_CONTENT_DIR" -o /srv/wiki )
   echo "agile-board: published wiki for $new_sha to /srv/wiki"
 done
