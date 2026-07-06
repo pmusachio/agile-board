@@ -12,22 +12,36 @@
 // and look for "generateContent" in supportedGenerationMethods.
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 
-export async function askGemini({ apiKey, model = DEFAULT_MODEL, systemContext, question }) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: question }] }],
-      systemInstruction: { parts: [{ text: systemContext }] },
-    }),
-  });
-  if (!res.ok) {
+// A single request occasionally comes back with an unhelpful, empty-bodied
+// 4xx/5xx that succeeds moments later on identical input (observed live
+// 2026-07-06: an empty-body HTTP 404, unlike Gemini's usual JSON error
+// object for real failures like quota exhaustion) — looks like a transient
+// upstream blip, not a real client error. One retry with a short backoff
+// absorbs that without masking a genuinely broken request (which will fail
+// the retry too, and still surface with full detail).
+async function callGemini(url, requestBody) {
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 500));
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+    if (res.ok) return res.json();
     // Never include `url` here — it carries the API key as a query param.
     const detail = await res.text().catch(() => '');
-    throw new Error(`Gemini API error: HTTP ${res.status} ${detail.slice(0, 200)}`);
+    lastError = new Error(`Gemini API error: HTTP ${res.status} ${detail ? detail.slice(0, 300) : '(empty response body)'}`);
   }
-  const body = await res.json();
+  throw lastError;
+}
+
+export async function askGemini({ apiKey, model = DEFAULT_MODEL, systemContext, question }) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const body = await callGemini(url, {
+    contents: [{ parts: [{ text: question }] }],
+    systemInstruction: { parts: [{ text: systemContext }] },
+  });
   const text = body?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '';
   if (!text) throw new Error('Gemini API returned no text');
   return text;
@@ -40,20 +54,11 @@ export async function askGemini({ apiKey, model = DEFAULT_MODEL, systemContext, 
 // by the caller (never executed by the model itself).
 export async function proposeActions({ apiKey, model = DEFAULT_MODEL, systemContext, instruction, tools }) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: instruction }] }],
-      systemInstruction: { parts: [{ text: systemContext }] },
-      tools: [{ functionDeclarations: tools }],
-    }),
+  const body = await callGemini(url, {
+    contents: [{ parts: [{ text: instruction }] }],
+    systemInstruction: { parts: [{ text: systemContext }] },
+    tools: [{ functionDeclarations: tools }],
   });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '');
-    throw new Error(`Gemini API error: HTTP ${res.status} ${detail.slice(0, 200)}`);
-  }
-  const body = await res.json();
   const parts = body?.candidates?.[0]?.content?.parts ?? [];
   const actions = parts
     .filter((p) => p.functionCall)

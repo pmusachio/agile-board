@@ -53,3 +53,19 @@ with `limit: 0` on the free tier — not a quota you exceed, one that was never 
 that model generation on this account. `gemini-2.5-flash` and `gemini-2.5-flash-lite` both
 return real `HTTP 200` answers. Changed `assistant/lib/gemini.mjs`'s `DEFAULT_MODEL` to
 `gemini-2.5-flash`; redeployed (rebuild + force-recreate, same as TASK-090's process).
+
+**Update 2026-07-06 (same day) — still failed once after the fix.** Paulo tried again and
+got the same generic message. Logs showed the same `HTTP 404`, but this time reproducing
+the exact live pipeline directly inside the container (loadCorpus → assembleContext →
+askGemini, real 106KB context, real key, real question) **succeeded** with a correct,
+grounded answer — so the code, key, and model were all genuinely fine. The failed request's
+`404` had an *empty* response body, unlike Gemini's normal JSON error object for real
+failures (e.g. the quota-exhaustion 429 earlier had a full explanation) — a strong signal
+it was a transient upstream blip, not a real client error, quite possibly coinciding with
+my own rapid-fire diagnostic calls moments earlier. Added a single retry with a short
+backoff in `assistant/lib/gemini.mjs` (`callGemini()`, shared by both `askGemini` and
+`proposeActions`) so one flaky response doesn't surface as a failure to the user; also
+fixed the error message to say `(empty response body)` explicitly instead of silently
+going blank, so any *real*, persistent failure is easier to diagnose immediately next time.
+Verified with mocked fetch: a fail-then-succeed sequence recovers transparently; an
+always-failing sequence still throws with the clearer message, after exactly one retry.
