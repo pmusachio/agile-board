@@ -19,18 +19,21 @@
  * stories/index.json is always a real error, shown via showRemoteError().
  */
 (function () {
+    // No emoji per DUX brand rules. Priority "faróis" get their color from the
+    // raw value (critical/high/medium/low) via a CSS [data-filter-value] rule in
+    // styles/99-dux-theme.css — the color no longer rides on a leading emoji.
     const PRIORITY_DISPLAY = {
-        critical: '🔴 Critical',
-        high: '🟠 High',
-        medium: '🟡 Medium',
-        low: '🟢 Low',
+        critical: 'Critical',
+        high: 'High',
+        medium: 'Medium',
+        low: 'Low',
     };
 
     const STATUS_COLUMNS = [
-        { name: '📝 To Do', id: 'todo' },
-        { name: '🚀 In Progress', id: 'in-progress' },
-        { name: '👀 In Review', id: 'in-review' },
-        { name: '✅ Done', id: 'done' },
+        { name: 'To Do', id: 'todo' },
+        { name: 'In Progress', id: 'in-progress' },
+        { name: 'In Review', id: 'in-review' },
+        { name: 'Done', id: 'done' },
     ];
 
     let readOnlyMode = false;
@@ -178,7 +181,7 @@
         if (!welcome) return;
         welcome.innerHTML = '';
         const h2 = document.createElement('h2');
-        h2.textContent = '⚠️ Unable to load the board';
+        h2.textContent = 'Unable to load the board';
         const p = document.createElement('p');
         p.textContent = message;
         welcome.append(h2, p);
@@ -218,7 +221,7 @@
             users: [],
             priorities: Object.values(PRIORITY_DISPLAY),
             tags: [],
-            boardTitle: manifest.title || 'Agile Board',
+            boardTitle: manifest.title || 'DUX Company',
         };
         tasks = (manifest.stories || []).map(storyToTask);
 
@@ -228,7 +231,8 @@
         // The folder picker is upstream's entry point into local write mode — out of
         // place on a public read-only board, so hide it once remote mode is active.
         document.getElementById('selectFolderBtn').style.display = 'none';
-        document.getElementById('headerTitle').textContent = `📋 ${config.boardTitle}`;
+        // The header now shows the DUX logo (see index.html), not a text title —
+        // just keep the document/tab title in sync.
         document.title = config.boardTitle;
 
         updateAutocomplete();

@@ -52,8 +52,8 @@ function renderIndex(epics) {
     .map((e) => `- [[${e.id}]] — ${e.title}`)
     .join('\n');
   return (
-    '---\ntitle: agile-board wiki\n---\n\n' +
-    'A browsable view over the same Markdown [agile-board](/board/) itself reads — ' +
+    '---\ntitle: DUX Company — Board Knowledge\n---\n\n' +
+    'A browsable view over the same Markdown [the board](/board/) itself reads — ' +
     'every story and its relationships, one click away. Use search or the graph to ' +
     'the right to explore; the epics below are a starting point.\n\n' +
     '## Epics\n' +

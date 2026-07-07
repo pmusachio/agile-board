@@ -27,18 +27,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agile Board</title>
+    <title>DUX Company</title>
     <link rel="stylesheet" href="styles/00-variables.css">
     <link rel="stylesheet" href="styles/01-base.css">
     <link rel="stylesheet" href="styles/02-board.css">
     <link rel="stylesheet" href="styles/03-modals.css">
     <link rel="stylesheet" href="styles/04-components.css">
     <link rel="stylesheet" href="styles/05-theme-responsive.css">
+    <!-- DUX Company brand theme (original, MIT) — loaded last to override the
+         vendored look without editing vendored CSS. -->
+    <link rel="preload" href="assets/fonts/Barlow-Regular.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="assets/fonts/Barlow-SemiBold.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="stylesheet" href="styles/99-dux-theme.css">
 </head>
 <body>
     <header class="header">
         <div class="header-content">
-            <h1 id="headerTitle">📋 Agile Board</h1>
+            <a href="./" class="dux-brand" aria-label="DUX Company">
+                <img class="dux-logo dux-logo--light" src="assets/logo/dux-horizontal-blue.png" alt="DUX Company">
+                <img class="dux-logo dux-logo--dark" src="assets/logo/dux-horizontal-white.png" alt="DUX Company">
+            </a>
             <div style="display: flex; gap: 0.75rem; align-items: center;">
                 <select id="languageSelector" onchange="setLanguage(this.value)" style="padding: 0.6rem 1rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; background: white; cursor: pointer;">
                     <option value="en">English</option>
@@ -46,16 +54,16 @@
                     <option value="de">Deutsch</option>
                     <option value="zh_cn">简体中文</option>
                 </select>
-                <a href="../wiki/" class="btn btn-secondary" style="text-decoration: none;">🧠 Wiki</a>
-                <button id="giteaAuthBtn" class="btn btn-secondary">🔑 Log in with Gitea</button>
+                <a href="../wiki/" class="btn btn-secondary" style="text-decoration: none;">Wiki</a>
+                <button id="giteaAuthBtn" class="btn btn-secondary">Log in with Gitea</button>
                 <select id="projectSelector" style="display: none; padding: 0.6rem 1rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; background: white; cursor: pointer; min-width: 180px;">
                 </select>
-                <button id="renameProjectBtn" class="btn btn-secondary" style="display: none; padding: 0.6rem;" title="Rename project" onclick="renameCurrentProject()">✏️</button>
-                <button id="deleteProjectBtn" class="btn btn-secondary" style="display: none; padding: 0.6rem;" title="Delete project" onclick="deleteCurrentProject()">🗑️</button>
-                <button id="selectFolderBtn" class="btn btn-primary">📁 Folder</button>
-                <button id="newTaskBtn" class="btn btn-secondary" style="display: none;">➕ Task</button>
-                <button id="archiveBtn" class="btn btn-secondary" style="display: none;">📦 Archive</button>
-                <button id="manageColsBtn" class="btn btn-secondary" style="display: none;">⚙️ Columns</button>
+                <button id="renameProjectBtn" class="btn btn-secondary" style="display: none; padding: 0.6rem;" title="Rename project" onclick="renameCurrentProject()">Rename</button>
+                <button id="deleteProjectBtn" class="btn btn-secondary" style="display: none; padding: 0.6rem;" title="Delete project" onclick="deleteCurrentProject()">Delete</button>
+                <button id="selectFolderBtn" class="btn btn-primary">Folder</button>
+                <button id="newTaskBtn" class="btn btn-secondary" style="display: none;">Task</button>
+                <button id="archiveBtn" class="btn btn-secondary" style="display: none;">Archive</button>
+                <button id="manageColsBtn" class="btn btn-secondary" style="display: none;">Columns</button>
                 <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" id="themeToggleBtn">🌙</button>
             </div>
         </div>
@@ -117,7 +125,7 @@
 
     <div class="container">
         <div id="welcomeScreen" class="welcome">
-            <h2>Loading the board... 👋</h2>
+            <h2>Loading DUX Company...</h2>
             <p>If this message doesn't go away, the board data couldn't be reached —
                check your connection and reload.</p>
         </div>
@@ -168,10 +176,10 @@
                         <label for="taskPriority" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Priority</label>
                         <select id="taskPriority" style="width: 100%; padding: 0.75rem; border: 2px solid #cbd5e0; border-radius: 6px; font-size: 0.95rem; background: white; box-sizing: border-box;">
                             <option value="">None</option>
-                            <option value="Critical">🔴 Critical</option>
-                            <option value="High">🟠 High</option>
-                            <option value="Medium">🟡 Medium</option>
-                            <option value="Low">🟢 Low</option>
+                            <option value="Critical">Critical</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
                         </select>
                     </div>
                     <div>
@@ -242,7 +250,7 @@
     <div id="archiveModal" class="modal">
         <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
-                <h2 id="archiveModalTitle">📦 Archive</h2>
+                <h2 id="archiveModalTitle">Archive</h2>
                 <button class="close-btn" onclick="closeArchiveModal()">&times;</button>
             </div>
             <div style="padding: 1.5rem;">

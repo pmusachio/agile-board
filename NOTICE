@@ -2,8 +2,9 @@ agile-board — third-party notices
 ==================================
 
 board/scripts/00-theme.js, 01-state.js, 05-markdown.js, 06-filters.js,
-07-columns-form.js, 08-board.js, 09-task-detail.js, 12-init.js
-board/styles/*.css
+07-columns-form.js, 12-init.js
+board/styles/00-variables.css, 01-base.css, 02-board.css, 03-modals.css,
+04-components.css, 05-theme-responsive.css
 --------------------------------------------------------------------
 Vendored, UNMODIFIED, from:
 
@@ -32,6 +33,17 @@ Change: one dead call, `updateProjectSelector();` inside `setLanguage()`, was
 removed — that function lived in the now-removed 03-storage.js. Everything
 else in this file is unmodified. Licensed under MPL-2.0, same terms as above.
 
+board/scripts/08-board.js, board/scripts/09-task-detail.js
+--------------------------------------------------------------------
+MODIFICATIONS of the upstream files at the same commit referenced above,
+for DUX Company brand compliance (no emoji in the interface). Changes are
+limited to replacing decorative emoji with brand-neutral markup: the card
+edit pencil (08-board.js) and the subtask delete icon (09-task-detail.js)
+became inline line-style SVG icons (currentColor), and the due-date badge
+(08-board.js) dropped its leading 📅/⚠️ emoji — the overdue/soon state is
+already conveyed by the badge colour and card border. No logic changed.
+These files remain in Source Code Form under MPL-2.0, same terms as above.
+
 board/index.html
 --------------------------------------------------------------------
 A MODIFICATION (MPL-2.0 §1.9) of src/index.html from the same upstream
@@ -50,9 +62,11 @@ to drop the "select a local folder" call to action. A few header buttons
 renameProjectBtn, deleteProjectBtn) and the archiveModal are kept even though
 they're now permanently inert — removing them would make unguarded
 `document.getElementById(...)` calls in unmodified vendored files throw at
-runtime (see the top-of-file comment in board/index.html for specifics). This
-file remains available in Source Code Form under MPL-2.0, as part of this
-public repository.
+runtime (see the top-of-file comment in board/index.html for specifics).
+Later, for the DUX Company rebrand: the text title was replaced with the DUX
+logo, every interface emoji was removed, and a link to the original
+board/styles/99-dux-theme.css (see below) was added last. This file remains
+available in Source Code Form under MPL-2.0, as part of this public repository.
 
 board/scripts/20-remote.js
 --------------------------------------------------------------------
@@ -79,6 +93,15 @@ assistant-api backend (assistant/, also MIT/original) to answer questions
 the same flag 21-write.js sets); reads the same stored Gitea token from
 localStorage rather than importing 21-write.js's private functions.
 
+board/styles/99-dux-theme.css
+--------------------------------------------------------------------
+Original work by Paulo Musachio, part of agile-board. Licensed under MIT
+(see ../LICENSE). The DUX Company brand theme — loaded last in index.html to
+override the vendored variables/components (palette, Barlow typography,
+spacing) without editing any vendored CSS, the same additive-layering
+discipline 20/21/22-*.js follow. Priority "faróis" use the Dracula palette
+(one deliberate deviation from the DUX book, at the project owner's request).
+
 wiki/quartz/, wiki/quartz.config.ts (config values only, see below),
 wiki/globals.d.ts, wiki/index.d.ts, wiki/tsconfig.json, wiki/package.json,
 wiki/package-lock.json, wiki/LICENSE.txt
@@ -104,12 +127,32 @@ Quartz's own wikilink/backlink resolution only looks at body text). Output
 is fully static HTML/CSS/JS; no server-side runtime or database beyond the
 one-time build step the Gitea post-receive hook runs on every push.
 
-wiki/quartz.config.ts, wiki/quartz.layout.ts
+wiki/quartz.config.ts, wiki/quartz.layout.ts, wiki/quartz/styles/custom.scss
 --------------------------------------------------------------------
-MODIFICATIONS of the upstream files at the same commit referenced above.
+MODIFICATIONS of the upstream files at the same commit referenced above
+(custom.scss is Quartz's own "put your custom CSS here" extension point).
 Changes: pageTitle, baseUrl, and ignorePatterns set for this project;
 analytics disabled (was Plausible); the CustomOgImages and Latex/katex
 plugins dropped (unused by this project's content, and this build runs on
 a small VM on every push rather than once on a laptop); the footer's
 upstream GitHub/Discord links replaced with a link back to /board/ and to
-this repository. Everything else in these two files is unmodified.
+this repository. For the DUX Company rebrand: theme.colors set to the DUX
+palette, theme.typography set to Barlow with fontOrigin "local", and
+custom.scss self-hosts Barlow (OFL) and swaps the text title for the DUX
+logo. Everything else in these files is unmodified.
+
+DUX Company brand assets
+board/assets/logo/*.png, wiki/quartz/static/logo/*.png
+--------------------------------------------------------------------
+The DUX Company logotype and "DC" symbol are the PROPRIETARY property of
+DUX Company, © DUX Company, all rights reserved. They are NOT covered by
+this repository's MIT license and are included here with DUX Company's
+permission for this deployment. Do not reuse them outside this project.
+
+Barlow typeface
+board/assets/fonts/Barlow-*.ttf, wiki/quartz/static/fonts/Barlow-*.ttf
+--------------------------------------------------------------------
+The Barlow font family by Jeremy Tribby, licensed under the SIL Open Font
+License 1.1 — free to use, embed, and redistribute. The full license text
+travels with the fonts as OFL.txt in each fonts/ directory. Barlow is the
+DUX Company brand typeface (see brand book).

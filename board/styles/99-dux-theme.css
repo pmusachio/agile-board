@@ -1,0 +1,183 @@
+/*
+ * DUX Company brand theme for the board — original work (MIT), NOT part of the
+ * vendored MarkdownTaskManager CSS. Loaded LAST in index.html so it overrides
+ * the vendored variables/components without editing any vendored file, the same
+ * additive-layering discipline board/scripts/20-21-22-*.js already follow.
+ *
+ * Implements the DUX brand book: Azul DUX #0066FF, Barlow typography, generous
+ * spacing, no decorative color beyond brand blue/navy — with ONE sanctioned
+ * exception: the priority "faróis" (critical/high/medium/low) use the Dracula
+ * palette, per the project owner's explicit request.
+ */
+
+/* ---- Barlow (self-hosted, OFL — see ../assets/fonts/OFL.txt) ---- */
+@font-face { font-family: "Barlow"; font-weight: 400; font-style: normal; font-display: swap;
+  src: url("../assets/fonts/Barlow-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Barlow"; font-weight: 500; font-style: normal; font-display: swap;
+  src: url("../assets/fonts/Barlow-Medium.ttf") format("truetype"); }
+@font-face { font-family: "Barlow"; font-weight: 600; font-style: normal; font-display: swap;
+  src: url("../assets/fonts/Barlow-SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Barlow"; font-weight: 700; font-style: normal; font-display: swap;
+  src: url("../assets/fonts/Barlow-Bold.ttf") format("truetype"); }
+@font-face { font-family: "Barlow"; font-weight: 800; font-style: normal; font-display: swap;
+  src: url("../assets/fonts/Barlow-ExtraBold.ttf") format("truetype"); }
+
+/* ---- DUX light theme (default) ---- */
+:root {
+  --bg-primary: #F4F6F8;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #F4F6F8;
+  --bg-input: #FFFFFF;
+  --border-color: #E2E5E9;
+  --border-input: #C9CED4;
+  --text-primary: #000000;
+  --text-secondary: #5D5D5D;   /* Cinza Médio (true neutral gray; brand-book hex is a typo) */
+  --text-label: #000000;
+  --accent: #0066FF;           /* Azul DUX */
+  --accent-hover: #0052D6;
+  --shadow: 0 1px 3px rgba(17, 30, 68, 0.08);
+  --shadow-hover: 0 6px 16px rgba(17, 30, 68, 0.12);
+  --badge-category-bg: #E6F0FF; --badge-category-text: #0047B3;
+  --badge-assignee-bg: #EAF4EF; --badge-assignee-text: #006C4A;  /* Verde Profundo */
+  --tag-bg: #EDF1FA; --tag-text: #111E44;                        /* Azul Marinho */
+  --btn-secondary-hover: #EDF1FA;
+  --search-clear-color: #5D5D5D;
+
+  /* Faróis — Dracula palette (the one sanctioned deviation from DUX) */
+  --priority-default: #6272a4;
+  --priority-red: #ff5555;
+  --priority-orange: #ffb86c;
+  --priority-yellow: #f1fa8c;
+  --priority-green: #50fa7b;
+  --priority-blue: #8be9fd;
+  --priority-purple: #bd93f9;
+  --priority-white: #f8f8f2;
+  --priority-black: #282a36;
+}
+
+/* ---- DUX dark theme (Azul Marinho base) ---- */
+[data-theme="dark"] {
+  --bg-primary: #0A1230;
+  --bg-secondary: #111E44;   /* Azul Marinho */
+  --bg-tertiary: #0A1230;
+  --bg-input: #16224D;
+  --border-color: #2A3A66;
+  --border-input: #3A4A76;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A9B6D6;
+  --text-label: #FFFFFF;
+  --accent: #4D94FF;
+  --accent-hover: #6BA8FF;
+  --shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.5);
+  --badge-category-bg: #12305C; --badge-category-text: #A4CEF4;   /* Azul Bebê */
+  --badge-assignee-bg: #123C2E; --badge-assignee-text: #76B9A0;   /* Menta */
+  --tag-bg: #1A2856; --tag-text: #A4CEF4;
+  --btn-secondary-hover: #1A2856;
+  --search-clear-color: #A9B6D6;
+}
+
+/* ---- Typography: Barlow everywhere ---- */
+body,
+input, textarea, select, button {
+  font-family: "Barlow", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ---- Header + brand logo ---- */
+.header { padding: 1.15rem 2.5rem; }
+.dux-logo { height: 30px; width: auto; display: block; }
+.dux-logo--dark { display: none; }
+[data-theme="dark"] .dux-logo--light { display: none; }
+[data-theme="dark"] .dux-logo--dark { display: block; }
+
+/* Theme toggle: 00-theme.js keeps writing an emoji into the button's textContent,
+   so we hide the glyph (font-size:0) and paint a brand-neutral sun/moon via a
+   CSS ::before mask — ::before is immune to the JS textContent rewrite, so no
+   vendored file needs editing. currentColor follows the theme. */
+.theme-toggle {
+  background: transparent; border: 1px solid var(--border-color); border-radius: 6px;
+  width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-primary); transition: background 0.2s, border-color 0.2s;
+  font-size: 0;
+}
+.theme-toggle:hover { background: var(--btn-secondary-hover); border-color: var(--accent); }
+.theme-toggle::before {
+  content: ""; width: 18px; height: 18px; background: currentColor;
+  -webkit-mask: var(--icon-moon) center / contain no-repeat;
+          mask: var(--icon-moon) center / contain no-repeat;
+}
+[data-theme="dark"] .theme-toggle::before {
+  -webkit-mask-image: var(--icon-sun);
+          mask-image: var(--icon-sun);
+}
+:root {
+  --icon-moon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Cpath d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'/%3E%3C/svg%3E");
+  --icon-sun: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4' fill='black'/%3E%3Cpath d='M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1'/%3E%3C/svg%3E");
+}
+
+/* Neutralize upstream hardcoded light inline styles so the DUX dark theme holds */
+.header select { background: var(--bg-input) !important; color: var(--text-primary); border-color: var(--border-color) !important; }
+#filterBar { background: var(--bg-secondary) !important; border-bottom-color: var(--border-color) !important; }
+#filterBar select, #filterBar input, #globalSearchInput, #archiveSearch {
+  background: var(--bg-input) !important; color: var(--text-primary); border-color: var(--border-input) !important;
+}
+#filterBar label { color: var(--text-primary); }
+
+/* ---- Buttons ---- */
+.btn { font-weight: 600; letter-spacing: 0.01em; border-radius: 6px; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+
+/* ---- Welcome / empty states ---- */
+.welcome h2 { font-weight: 800; font-size: 2.25rem; letter-spacing: -0.01em; }
+.welcome p { font-size: 1.05rem; }
+
+/* ---- Board columns ---- */
+.kanban-board { gap: 1.5rem; padding: 2rem 2.5rem; }
+.kanban-column { border-radius: 10px; }
+.column-header { border-bottom: 2px solid var(--accent); }
+.column-title {
+  font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text-primary);
+}
+.column-count {
+  font-weight: 600; background: var(--bg-primary); color: var(--text-secondary);
+}
+
+/* ---- Cards ---- */
+.task-card { border-radius: 8px; padding: 1.15rem; }
+.task-id {
+  font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--accent);
+}
+.task-title { font-weight: 600; font-size: 0.95rem; }
+.task-description { font-size: 0.88rem; }
+
+/* Card edit button (write mode only): brand-neutral, currentColor icon */
+.task-edit-btn { color: var(--text-secondary); }
+.task-edit-btn:hover { color: var(--accent); }
+
+/* ---- Badges: Barlow, uppercase, letter-spaced ---- */
+.badge {
+  font-weight: 600; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em;
+  border-radius: 5px;
+}
+
+/* Faróis: color the priority badge from the RAW priority value (data-filter-value),
+   independent of any emoji — so the emoji circles can be removed entirely.
+   Dracula yellow/green/orange are light → dark text; red keeps light text. */
+/* data-filter-value carries the raw priority; case-insensitive ("Critical"
+   vs "critical") so the color never depends on casing or on a leading emoji. */
+.badge.badge-priority[data-filter-value="critical" i] { background: #ff5555; color: #f8f8f2; }
+.badge.badge-priority[data-filter-value="high" i]     { background: #ffb86c; color: #282a36; }
+.badge.badge-priority[data-filter-value="medium" i]   { background: #f1fa8c; color: #282a36; }
+.badge.badge-priority[data-filter-value="low" i]      { background: #50fa7b; color: #282a36; }
+
+/* Keep the light Dracula badge classes readable if ever reached by color name */
+.badge-priority.Yellow, .badge-priority.Green, .badge-priority.White { color: #282a36; }
+
+/* ---- Filter bar ---- */
+.filter-bar, #filterBar { font-weight: 500; }
+
+/* ---- Scrollbar accents (subtle brand touch) ---- */
+.kanban-board::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }

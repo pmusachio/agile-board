@@ -46,7 +46,7 @@
             'box-shadow:var(--shadow-hover); flex-direction:column; z-index:1000; overflow:hidden;';
         panel.innerHTML = `
             <div style="padding:0.75rem 1rem; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                <strong>🤖 Assistant</strong>
+                <strong>Assistant</strong>
                 <button id="assistantCloseBtn" class="btn btn-secondary" style="padding:0.25rem 0.6rem;">✕</button>
             </div>
             <div style="padding:0.5rem 1rem; display:flex; gap:0.5rem;">
@@ -154,7 +154,7 @@
         const btn = document.createElement('button');
         btn.id = 'assistantToggleBtn';
         btn.className = 'btn btn-secondary';
-        btn.textContent = '🤖 Assistant';
+        btn.textContent = 'Assistant';
         btn.style.display = 'none';
         const header = document.querySelector('.header-content > div');
         if (header) header.appendChild(btn);

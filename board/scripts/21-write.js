@@ -539,18 +539,18 @@
         const token = getStoredToken();
         if (!token) {
             window.__agileBoardWriteMode = false;
-            btn.textContent = '🔑 Log in with Gitea';
+            btn.textContent = 'Log in with Gitea';
             return;
         }
         try {
             cachedUsername = cachedUsername || (await fetchUsername(token.access_token));
             window.__agileBoardWriteMode = true;
-            btn.textContent = `👤 ${cachedUsername} (log out)`;
+            btn.textContent = `${cachedUsername} (log out)`;
         } catch (err) {
             console.warn('agile-board: stored token looks invalid, falling back to read-only', err);
             clearStoredToken();
             window.__agileBoardWriteMode = false;
-            btn.textContent = '🔑 Log in with Gitea';
+            btn.textContent = 'Log in with Gitea';
         }
     }
 

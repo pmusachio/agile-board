@@ -10,7 +10,7 @@
     {
       "name": "wiki-test-static",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8421", "--directory", "/Users/paulomusachio/REPOS/wiki-test-output"],
+      "runtimeArgs": ["-m", "http.server", "8421", "--directory", "/tmp/wiki-dux-out"],
       "port": 8421
     }
   ]

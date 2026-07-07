@@ -110,12 +110,12 @@
             taskEl.innerHTML = `
                 <div class="task-header">
                     <span class="task-id">${escapeHtml(task.id)}</span>
-                    <button class="task-edit-btn" data-edit-task="1" style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.25rem;">✏️</button>
+                    <button class="task-edit-btn" data-edit-task="1" title="Edit" style="background: none; border: none; cursor: pointer; padding: 0.25rem; line-height: 0;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
                 </div>
                 <div class="task-title">${escapeHtml(task.title)}</div>
                 ${task.description ? `<div class="task-description">${markdownToHtml(task.description)}</div>` : ''}
                 <div class="task-meta">
-                    ${task.due ? `<span class="badge badge-due${due ? ` badge-due--${due}` : ''}" title="${escapeHtml(t(due === 'overdue' ? 'tooltip.overdue' : (due === 'soon' ? 'tooltip.dueSoon' : 'meta.due')))}">${due === 'overdue' ? '⚠️' : '📅'} ${escapeHtml(task.due)}</span>` : ''}
+                    ${task.due ? `<span class="badge badge-due${due ? ` badge-due--${due}` : ''}" title="${escapeHtml(t(due === 'overdue' ? 'tooltip.overdue' : (due === 'soon' ? 'tooltip.dueSoon' : 'meta.due')))}">${escapeHtml(task.due)}</span>` : ''}
                     ${task.priority ? `<span class="badge badge-priority ${priorityBadgeClass}" data-filter="priority" data-filter-value="${escapeHtml(task.priority)}" style="cursor: pointer;" title="${t('tooltip.filterByPriority')}">${escapeHtml(displayPriority(task.priority))}</span>` : ''}
                     ${task.category ? `<span class="badge badge-category" data-filter="category" data-filter-value="${escapeHtml(task.category)}" style="cursor: pointer;" title="${t('tooltip.filterByCategory')}">${escapeHtml(task.category)}</span>` : ''}
                     ${task.assignees.map(a => {

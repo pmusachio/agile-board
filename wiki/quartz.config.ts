@@ -8,7 +8,7 @@ import * as Plugin from "./quartz/plugins"
  */
 const config: QuartzConfig = {
   configuration: {
-    pageTitle: "agile-board wiki",
+    pageTitle: "DUX Company",
     pageTitleSuffix: "",
     enableSPA: true,
     enablePopovers: true,
@@ -18,35 +18,40 @@ const config: QuartzConfig = {
     ignorePatterns: ["private", "templates", ".obsidian", "_TEMPLATE.md"],
     defaultDateType: "modified",
     theme: {
-      fontOrigin: "googleFonts",
+      // Barlow is self-hosted (OFL) from quartz/static/fonts via @font-face in
+      // styles/custom.scss — fontOrigin "local" tells Quartz not to fetch Google.
+      fontOrigin: "local",
       cdnCaching: true,
       typography: {
-        header: "Schibsted Grotesk",
-        body: "Source Sans Pro",
+        header: "Barlow",
+        body: "Barlow",
         code: "IBM Plex Mono",
       },
+      // DUX Company palette (brand book §Paleta Cromática). Quartz colour roles:
+      // light=page bg, dark=headings, darkgray=body, secondary=links/title,
+      // tertiary=hover, lightgray=borders, gray=muted/graph, highlight=link bg.
       colors: {
         lightMode: {
-          light: "#faf8f8",
-          lightgray: "#e5e5e5",
-          gray: "#b8b8b8",
-          darkgray: "#4e4e4e",
-          dark: "#2b2b2b",
-          secondary: "#284b63",
-          tertiary: "#84a59d",
-          highlight: "rgba(143, 159, 169, 0.15)",
-          textHighlight: "#fff23688",
+          light: "#FFFFFF",
+          lightgray: "#E2E5E9",
+          gray: "#9AA1AC",
+          darkgray: "#1D1D1F",
+          dark: "#000000",
+          secondary: "#0066FF",   // Azul DUX
+          tertiary: "#0052D6",
+          highlight: "rgba(0, 102, 255, 0.10)",
+          textHighlight: "#0066ff22",
         },
         darkMode: {
-          light: "#161618",
-          lightgray: "#393639",
-          gray: "#646464",
-          darkgray: "#d4d4d4",
-          dark: "#ebebec",
-          secondary: "#7b97aa",
-          tertiary: "#84a59d",
-          highlight: "rgba(143, 159, 169, 0.15)",
-          textHighlight: "#b3aa0288",
+          light: "#0A1230",       // deep navy page bg
+          lightgray: "#2A3A66",
+          gray: "#6E7CA8",
+          darkgray: "#E8ECF5",
+          dark: "#FFFFFF",
+          secondary: "#6BA8FF",   // lighter Azul DUX on navy
+          tertiary: "#A4CEF4",    // Azul Bebê
+          highlight: "rgba(77, 148, 255, 0.15)",
+          textHighlight: "#4d94ff33",
         },
       },
     },
