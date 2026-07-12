@@ -5,7 +5,7 @@ are Markdown files in a git repo; a static viewer renders them as a board; a
 Gemini-backed assistant can answer questions about it or open a pull request
 to change it.
 
-![agile-board Kanban view](docs/screenshots/board.png)
+![agile-board Kanban view](docs/screenshots/board-kanban.png)
 
 **Live demo:** https://agile-board.duckdns.org/board/ — a personal Always-Free
 OCI instance, so treat it as a demo, not an SLA.
@@ -142,7 +142,7 @@ relationships the board already tracks. Aimed at anyone who'd rather click
 through connected ideas than parse kanban columns — no login needed, since
 it's read-only (all edits still go through the board or git).
 
-![agile-board wiki homepage](docs/screenshots/wiki-home.png)
+![agile-board wiki homepage](docs/screenshots/wiki-homepage.png)
 
 **How to use it:** open [the wiki](https://agile-board.duckdns.org/wiki/) (or
 click **🧠 Wiki** from the board). Search, or start from an epic on the
@@ -161,7 +161,7 @@ this") without maintaining that list by hand. Since it's all derived from the
 same `stories/*.md`, a merge always keeps board and wiki in sync — there's
 no second copy of the data anywhere.
 
-![A story page with At a glance, graph view, and backlinks](docs/screenshots/wiki-story.png)
+![A story page with At a glance, graph view, and backlinks](docs/screenshots/wiki-story-page.png)
 
 ## Data model
 
