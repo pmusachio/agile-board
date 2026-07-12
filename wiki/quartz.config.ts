@@ -8,7 +8,7 @@ import * as Plugin from "./quartz/plugins"
  */
 const config: QuartzConfig = {
   configuration: {
-    pageTitle: "DUX Company",
+    pageTitle: "agile-board",
     pageTitleSuffix: "",
     enableSPA: true,
     enablePopovers: true,
@@ -27,9 +27,9 @@ const config: QuartzConfig = {
         body: "Barlow",
         code: "IBM Plex Mono",
       },
-      // DUX Company palette (brand book §Paleta Cromática). Quartz colour roles:
-      // light=page bg, dark=headings, darkgray=body, secondary=links/title,
-      // tertiary=hover, lightgray=borders, gray=muted/graph, highlight=link bg.
+      // Brand palette. Quartz colour roles: light=page bg, dark=headings,
+      // darkgray=body, secondary=links/title, tertiary=hover, lightgray=borders,
+      // gray=muted/graph, highlight=link bg. Swap these to reskin.
       colors: {
         lightMode: {
           light: "#FFFFFF",
@@ -37,7 +37,7 @@ const config: QuartzConfig = {
           gray: "#9AA1AC",
           darkgray: "#1D1D1F",
           dark: "#000000",
-          secondary: "#0066FF",   // Azul DUX
+          secondary: "#0066FF",   // brand blue
           tertiary: "#0052D6",
           highlight: "rgba(0, 102, 255, 0.10)",
           textHighlight: "#0066ff22",
@@ -48,7 +48,7 @@ const config: QuartzConfig = {
           gray: "#6E7CA8",
           darkgray: "#E8ECF5",
           dark: "#FFFFFF",
-          secondary: "#6BA8FF",   // lighter Azul DUX on navy
+          secondary: "#6BA8FF",   // lighter brand blue on navy
           tertiary: "#A4CEF4",    // Azul Bebê
           highlight: "rgba(77, 148, 255, 0.15)",
           textHighlight: "#4d94ff33",

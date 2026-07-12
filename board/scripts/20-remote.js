@@ -19,9 +19,9 @@
  * stories/index.json is always a real error, shown via showRemoteError().
  */
 (function () {
-    // No emoji per DUX brand rules. Priority "faróis" get their color from the
-    // raw value (critical/high/medium/low) via a CSS [data-filter-value] rule in
-    // styles/99-dux-theme.css — the color no longer rides on a leading emoji.
+    // No emoji in the UI. Priority "faróis" get their color from the raw value
+    // (critical/high/medium/low) via a CSS [data-filter-value] rule in
+    // styles/99-theme.css — the color no longer rides on a leading emoji.
     const PRIORITY_DISPLAY = {
         critical: 'Critical',
         high: 'High',
@@ -221,7 +221,7 @@
             users: [],
             priorities: Object.values(PRIORITY_DISPLAY),
             tags: [],
-            boardTitle: manifest.title || 'DUX Company',
+            boardTitle: manifest.title || 'agile-board',
         };
         tasks = (manifest.stories || []).map(storyToTask);
 
@@ -231,8 +231,8 @@
         // The folder picker is upstream's entry point into local write mode — out of
         // place on a public read-only board, so hide it once remote mode is active.
         document.getElementById('selectFolderBtn').style.display = 'none';
-        // The header now shows the DUX logo (see index.html), not a text title —
-        // just keep the document/tab title in sync.
+        // The header shows a static brand wordmark (see index.html), not this
+        // title — just keep the document/tab title in sync.
         document.title = config.boardTitle;
 
         updateAutocomplete();

@@ -27,26 +27,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DUX Company</title>
+    <title>agile-board</title>
     <link rel="stylesheet" href="styles/00-variables.css">
     <link rel="stylesheet" href="styles/01-base.css">
     <link rel="stylesheet" href="styles/02-board.css">
     <link rel="stylesheet" href="styles/03-modals.css">
     <link rel="stylesheet" href="styles/04-components.css">
     <link rel="stylesheet" href="styles/05-theme-responsive.css">
-    <!-- DUX Company brand theme (original, MIT) — loaded last to override the
-         vendored look without editing vendored CSS. -->
+    <!-- Brand theme (original, MIT) — loaded last to override the vendored look
+         without editing vendored CSS. Palette/fonts are easy to reskin. -->
     <link rel="preload" href="assets/fonts/Barlow-Regular.ttf" as="font" type="font/ttf" crossorigin>
     <link rel="preload" href="assets/fonts/Barlow-SemiBold.ttf" as="font" type="font/ttf" crossorigin>
-    <link rel="stylesheet" href="styles/99-dux-theme.css">
+    <link rel="stylesheet" href="styles/99-theme.css">
 </head>
 <body>
     <header class="header">
         <div class="header-content">
-            <a href="./" class="dux-brand" aria-label="DUX Company">
-                <img class="dux-logo dux-logo--light" src="assets/logo/dux-horizontal-blue.png" alt="DUX Company">
-                <img class="dux-logo dux-logo--dark" src="assets/logo/dux-horizontal-white.png" alt="DUX Company">
-            </a>
+            <a href="./" class="brand-mark" aria-label="agile-board">agile-board</a>
             <div style="display: flex; gap: 0.75rem; align-items: center;">
                 <select id="languageSelector" onchange="setLanguage(this.value)" style="padding: 0.6rem 1rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; background: white; cursor: pointer;">
                     <option value="en">English</option>
@@ -125,7 +122,7 @@
 
     <div class="container">
         <div id="welcomeScreen" class="welcome">
-            <h2>Loading DUX Company...</h2>
+            <h2>Loading the board...</h2>
             <p>If this message doesn't go away, the board data couldn't be reached —
                check your connection and reload.</p>
         </div>
